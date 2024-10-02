@@ -1,0 +1,101 @@
+.light-theme {
+  --bg: #fafafa;
+  --bg-menu: #f0f0f0;
+  --bg-nav: #fff;
+  --bg-white: #fff;
+  --bg-input: #fff;
+
+  --color-text: #464855;
+  --color-grey: #e5e5e5;
+  --color-grey2: #d5d5d5;
+  --color-input: #6B6F82;
+}
+
+.dark-theme {
+  --bg: #101826;
+  --bg-menu: #0B0D16;
+  --bg-nav: #1a273b;
+  --bg-white: #1a273b;
+  --bg-input: #253854;
+
+  --color-text: #d6d6d6;
+  --color-grey: #1a273b;
+  --color-grey2: #d5d5d5;
+  --color-input: #a6a7aa;
+}
+
+.content_prod{
+  background-color: var( --bg );
+}
+html body{
+  background-color: var(--bg) !important;
+}
+.navbar-semi-dark{
+  background: var(--bg-nav) !important;
+}
+.btn-outline-secondary:hover {
+  background-color: rgba(0,0,0,0.1) !important;
+}
+p, h1, h2, h3, h4, h5, h6, span, i, label, th, td, .color_text{
+  color: var(--color-text) !important;
+}
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--bg-input) !important;
+}
+input, textarea, select {
+  background: var(--bg-input) !important;
+}
+.card{
+  background-color: var(--bg-white) !important;
+}
+.bg_white{
+  background: var(--bg-white) !important;
+}
+textarea {
+  border: solid 1px var(--color-grey) !important;
+}
+input {
+  border: solid 1px var(--color-grey) !important;
+}
+.modal-header {
+  border-bottom: solid 1px var(--color-grey) !important;
+}
+.modal-footer {
+  border-top: solid 1px var(--color-grey) !important;
+}
+.form-control{
+  color: var(--color-input) !important;
+  border-radius: 10px !important;
+}
+.select2-selection__rendered{
+  color: var(--color-input) !important;
+}
+.table thead th{
+  border-top: solid 0.5px var(--color-grey) !important;
+  border-bottom: solid 0.5px var(--color-grey) !important;
+}
+.menu__jota .main-menu.menu-dark{
+  background-color: var( --bg-menu ) !important;
+}
+.menu__jota .nav-item a{
+  background: var(--bg-menu) !important;
+  color: var(--color-input) !important;
+}
+.menu__jota .navigation .active a{
+  background: var(--color-grey) !important;
+}
+.light-theme .contenedor-img {
+  background-color: var(--color-grey);
+}
+.dark-theme .contenedor-img {
+  background-color: var(--bg-input);
+}
+.switch-container {
+  border: solid 1px var(--color-grey) !important;
+}
+.select2-container--open .select2-dropdown--below{
+  border: solid 1px var(--color-grey) !important;
+}
+.select2-container--default .select2-selection--single{
+  background-color: var(--bg-input);
+}

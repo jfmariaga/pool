@@ -1,0 +1,166 @@
+/* Estilos para el contenedor principal del calendario */
+.calendario-container {
+    font-family: Arial, sans-serif;
+    /* max-width: 800px; */
+    margin: 0 auto;
+    padding: 20px;
+    /* background-color: #f4f4f4; */
+    border-radius: 5px;
+    /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
+}
+
+/* Estilos para los botones de cambio de mes */
+.mes-selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-anterior,
+.btn-siguiente {
+    background-color: #f4f4f4;
+    color: #0a0a0a;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-anterior:hover,
+.btn-siguiente:hover {
+    background-color: #f4f4f4;
+}
+
+/* Estilos para la tabla del calendario */
+.calendario {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed; /* Fijamos el ancho de la tabla */
+}
+
+/* Estilos para las celdas del calendario */
+.calendario th{
+    border: 1px solid #ddd;
+    padding: 10px; /* Aumentamos el padding para dar más espacio */
+    text-align: center;
+    width: 14.28%; /* Dividimos la tabla en 7 columnas */
+}
+.calendario td {
+    vertical-align: top !important;
+    border: 1px solid #ddd;
+    /* padding: 40px;  */
+    /* text-align: center; */
+    width: 14.28%; /* Dividimos la tabla en 7 columnas */
+}
+
+.calendario th {
+    background-color: #f4f4f4;
+    color: #0a0a0a;
+}
+
+/* Estilos para los días deshabilitados */
+.dia-mes.disabled {
+    color: #ccc;
+    pointer-events: none; /* Deshabilita los eventos de clic */
+}
+
+/* Estilos para el número del día */
+.dia-mes {
+    position: relative;
+    /* height: calc(100vw / 10); */
+    height: 150px;
+    cursor: pointer;
+
+}
+
+.dia-mes:hover{
+    background: #f4f4f4 !important;
+}
+
+.dia-numero {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 12px; /* Tamaño de fuente ajustado */
+    color: #000; /* Cambiar color a negro */
+}
+
+/* Estilos para resaltar el día seleccionado */
+.seleccionado {
+    background-color: #d0d0dbb9; /* Cambia el color de fondo cuando se selecciona */
+}
+
+/* Estilos para resaltar el día actual */
+.dia-actual {
+    border: 2px solid #ff0000;
+}
+
+/* Estilos para resaltar el día actual */
+.dia-actual .dia-numero {
+    border: 2px solid #ff0000;
+    border-radius: 50%; /* Añade un borde redondeado alrededor del número */
+    padding: 5px; /* Ajusta el espacio alrededor del número */
+}
+
+.content_dia_calendario{
+    margin: 25px 0px 10px 0px
+}
+
+.evento_calendario{
+    margin-top: 3px;
+    padding: 5px;
+    /* border-radius: 5px; */
+    height: 23px;
+    overflow: hidden;
+    font-size: 12px;
+    color: #000;
+}
+
+.evento_calendario_show{
+    margin-top: 10px;
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #000;
+}
+
+.bg_recordatorio{
+    background: rgb(228, 228, 255);
+}
+.bg_venta{
+    background: rgb(228, 255, 229);
+}
+.bg_cotizacion{
+    background: rgb(255, 244, 228);
+}
+
+.bg_equipo_sin_color{
+    background: rgb(243 243 243);
+}
+
+.color_example{
+    width: 15px;
+    height: 15px;
+    margin-right: 20px;
+    margin-top: 4px;
+    border: solid 1px #6B6F82;
+}
+
+.content_filtros_calendario{
+    background: #f4f4f4;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.c_black{
+    color: #000 !important;
+}
+
+
+
+
+
+
+
