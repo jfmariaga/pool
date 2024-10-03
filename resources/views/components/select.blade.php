@@ -8,7 +8,7 @@
             @endif
         </label>
     @endif
-    <select class="form-control select2" x-model="{{ $model }}" id="{{$id}}" data-minimum-results-for-search="{{ $no_search ?? '' }}">
+    <select class="form-control select2" x-model="{{ $model }}" id="{{$id ?? ''}}" data-minimum-results-for-search="{{ $no_search ?? '' }}">
         {{ $slot }}
     </select>
 </div>

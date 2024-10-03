@@ -84,7 +84,7 @@ class Usuarios extends Component
                 'email'     => $this->email,
                 'phone'     => $this->phone,
                 'picture'   => $name_picture,
-                'status'    => $this->status ?? 1,
+                'status'    => 1,
             ]);
         }
 

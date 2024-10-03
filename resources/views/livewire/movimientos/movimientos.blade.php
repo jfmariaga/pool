@@ -66,7 +66,7 @@
                     }
 
                     setTimeout(() => {
-                        resetTable('#table_movimientos');
+                        __resetTable('#table_movimientos');
                         this.loading = false;
                     }, 500);
                 },

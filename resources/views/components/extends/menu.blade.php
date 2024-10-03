@@ -56,7 +56,7 @@
                     </a>
                 </li>
                 <li class="nav-item ">
-                    <a href="javascript:" onclick="blockPage()" onclick="$('#submitLogout').submit()"><i
+                    <a href="javascript:" onclick="$('#submitLogout').submit()"><i
                             class="la la-power-off c_red"></i>
                         <span class="menu-title c_red" data-i18n="nav.support_documentation.main">Cerrar sesión</span>
                     </a>

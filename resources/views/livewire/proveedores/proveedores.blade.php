@@ -69,7 +69,7 @@
 
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
-                        resetTable('#table_proveedores')
+                        __resetTable('#table_proveedores')
                         this.loading = false
                     }, 500);
 

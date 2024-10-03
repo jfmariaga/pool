@@ -18,7 +18,42 @@
             </div>
 
             <div class="content-body">
-                <div class="card p-3">
+                <div class="card">
+                    {{-- filtros --}}
+                    <div class="row card-body">
+                        <div class="col-md-12 mb-1">
+                            <b>Filtros</b>
+                        </div>
+                        <div class="col-md-3 d-flex">
+                            <div class="">
+                                {{-- <span x-text="$wire.desde"></span> --}}
+                                <x-input type="date" model="$wire.desde" id="desde" class="form-control" label="Desde"></x-input>
+                            </div>
+                            <div class="ml-2">
+                                <x-input type="date" model="$wire.hasta" id="hasta" class="form-control" label="Hasta"></x-input>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <x-select model="$wire.proveedor_id" id="proveedor_id" label="Filtrar por proveedor">
+                                <option value="0">Todos...</option>
+                                @foreach ($proveedores as $i)
+                                    <option value="{{ $i['id'] }}">{{ $i['nombre'] }}</option>
+                                @endforeach
+                            </x-select>
+                        </div>
+                        <div class="col-md-3">
+                            <x-select model="$wire.cuenta_id" id="cuenta_id" label="Filtrar por cuenta">
+                                <option value="0">Todas...</option>
+                                @foreach ($cuentas as $i)
+                                    <option value="{{ $i['id'] }}">{{ $i['nombre'] }}</option>
+                                @endforeach
+                            </x-select>
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark" style="margin-top:19px;">Filtrar</button>
+                        </div>
+                    </div>
+
                     <div x-show="!loading">
                         <x-table id="table" extra="d-none">
                             <tr>
@@ -39,6 +74,7 @@
         </div>
     </div>
 
+    {{-- comprobante de la compra --}}
     <x-modal id="comprobante">
         <x-slot name="title">
             <span>Comprobante de la compra</span>
@@ -117,6 +153,18 @@
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
                     this.getTabla()
+                    $('#proveedor_id').change( ()=>{
+                        @this.proveedor_id = $('#proveedor_id').val()
+                    })
+                    $('#cuenta_id').change( ()=>{
+                        @this.cuenta_id = $('#cuenta_id').val()
+                    })
+                    $('#desde').change( ()=>{
+                        @this.desde = $('#proveedor_id').val()
+                    })
+                    $('#hasta').change( ()=>{
+                        @this.hasta = $('#cuenta_id').val()
+                    })
                 },
 
                 async getTabla() {
@@ -125,12 +173,15 @@
 
                     this.compras = await @this.getTabla() // consultamos
 
-                    this.compras.map( ( i )=>{
-                        this.addUser( i )
+                    // impiamos el contenido de la tabla
+                    __destroyTable( '#table' )
+                    
+                    this.compras.map( async ( i )=>{
+                        const addUser = await this.addUser( i )
                     })
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
-                        resetTable('#table')
+                        __resetTable('#table')
                         this.loading = false
                     }, 500);
 
@@ -156,7 +207,7 @@
 
                     tr += `</tr>`
                     $('#body_table').prepend(tr)
-
+                    return true;
                 },
 
                 confirmDelete( id, puede_eliminar ) {

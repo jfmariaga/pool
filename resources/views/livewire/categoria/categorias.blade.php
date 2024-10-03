@@ -63,7 +63,7 @@
                     }
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
-                        resetTable('#table_categorias')
+                        __resetTable('#table_categorias')
                         this.loading = false
                     }, 500);
 

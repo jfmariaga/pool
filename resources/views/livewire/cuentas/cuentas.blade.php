@@ -63,7 +63,7 @@
                     }
 
                     setTimeout(() => {
-                        resetTable('#table_cuentas')
+                        __resetTable('#table_cuentas')
                         this.loading = false
                     }, 500);
                 },

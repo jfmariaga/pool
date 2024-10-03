@@ -138,8 +138,13 @@
 
     }
 
+    function __destroyTable( id ){
+        $( id ).DataTable().destroy(); // destruimos la tabla
+        $(`${id} tbody`).html('')
+    }
+
     // se agrega todo aquí por variables, order, si se va a exportar todo eso
-    function resetTable( id ){
+    function __resetTable( id ){
         $( id ).DataTable().destroy(); // destruimos la tabla
         $( id ).DataTable({ // le asignamos nuevamente las propiedades de datatables
             language: {

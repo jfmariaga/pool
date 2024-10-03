@@ -8,7 +8,7 @@
     </label>
 @endif
 
-<input type="{{ $type ?? 'text' }}" class="form-control" x-model="{{ $model }}" data-mask="{{ $dataMask ?? '' }}" placeholder="{{ $placeholder ?? '' }}" x-on:keyup="{{ $keyup ?? '' }}">
+<input type="{{ $type ?? 'text' }}" class="form-control" x-model="{{ $model }}" id="{{ $id ?? '' }}" data-mask="{{ $dataMask ?? '' }}" placeholder="{{ $placeholder ?? '' }}" x-on:keyup="{{ $keyup ?? '' }}">
 @php
     $model = str_replace('$wire.','',$model)
 @endphp

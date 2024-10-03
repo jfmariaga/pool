@@ -16,27 +16,28 @@
     {{-- stylos propios --}}
     <link rel="stylesheet" type="text/css" href="{{ asset('css/style-p.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('css/theme.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('css/calendario.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('css/switch.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('css/sweetalert2.min.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('css/fancybox4.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('modernadmin/app-assets/css/vendors.css') }}">
     <link rel="stylesheet" type="text/css"
         href="{{ asset('modernadmin/app-assets/vendors/css/tables/datatable/datatables.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('modernadmin/app-assets/css/app.css') }}">
     <link rel="stylesheet" type="text/css"
         href="{{ asset('modernadmin/app-assets/css/core/menu/menu-types/vertical-menu-modern.css') }}">
-    <link rel="stylesheet" type="text/css"
-        href="{{ asset('modernadmin/app-assets/css/core/colors/palette-callout.css') }}">
-    <link rel="stylesheet" type="text/css"
+        <link rel="stylesheet" type="text/css"
         href="{{ asset('modernadmin/app-assets/vendors/css/forms/selects/select2.css') }}">
-    <link rel="stylesheet" type="text/css"
-        href="{{ asset('modernadmin/app-assets/fonts/simple-line-icons/style.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ asset('modernadmin/assets/css/style.css') }}">
-    <link rel="stylesheet" type="text/css"
-        href="{{ asset('modernadmin/app-assets/vendors/css/pickers/daterange/daterangepicker.css') }}">
-    <link rel="stylesheet" type="text/css"
-        href="{{ asset('modernadmin/app-assets/vendors/css/pickers/pickadate/pickadate.css') }}">
+        
+    {{-- esto no se está usando si no falla nada ya luego se borra --}}
+    {{-- <link rel="stylesheet" type="text/css"
+            href="{{ asset('modernadmin/app-assets/css/core/colors/palette-callout.css') }}"> --}}
+    {{-- <link rel="stylesheet" type="text/css" href="{{ asset('css/fancybox4.css') }}"> --}}
+    {{-- <link rel="stylesheet" type="text/css"
+        href="{{ asset('modernadmin/app-assets/fonts/simple-line-icons/style.css') }}"> --}}
+    {{-- <link rel="stylesheet" type="text/css" href="{{ asset('modernadmin/assets/css/style.css') }}"> --}}
+    {{-- <link rel="stylesheet" type="text/css"
+        href="{{ asset('modernadmin/app-assets/vendors/css/pickers/daterange/daterangepicker.css') }}"> --}}
+    {{-- <link rel="stylesheet" type="text/css"
+        href="{{ asset('modernadmin/app-assets/vendors/css/pickers/pickadate/pickadate.css') }}"> --}}
 
     <script type="text/javascript" src="{{ asset('assets/jquery.min.js') }}"></script>
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/toastr/toastr.css') }}">
@@ -46,6 +47,7 @@
     <script src="https://jsuites.net/v4/jsuites.js"></script>
     <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 </head>
 
 <body class="vertical-layout vertical-menu-modern 2-columns menu-expanded fixed-navbar light-theme" data-open="click"
@@ -67,12 +69,14 @@
     <script src="{{ asset('modernadmin/app-assets/js/core/app-menu.js') }}" type="text/javascript"></script>
     <script src="{{ asset('modernadmin/app-assets/js/core/app.js') }}" type="text/javascript"></script>
     <script src="{{ asset('modernadmin/app-assets/js/scripts/customizer.js') }}" type="text/javascript"></script>
-    <script src="{{ asset('modernadmin/app-assets/vendors/js/pickers/pickadate/picker.js') }}" type="text/javascript">
+    {{-- <script src="{{ asset('modernadmin/app-assets/vendors/js/pickers/pickadate/picker.js') }}" type="text/javascript">
     </script>
     <script src="{{ asset('modernadmin/app-assets/vendors/js/pickers/pickadate/picker.date.js') }}" type="text/javascript">
     </script>
     <script src="{{ asset('modernadmin/app-assets/js/scripts/pickers/dateTime/pick-a-datetime.js') }}"
-        type="text/javascript"></script>
+        type="text/javascript"></script> --}}
+
+
     <script src="{{ asset('js/jquery.js') }}" type="text/javascript"></script>
     <script src="{{ asset('modernadmin/app-assets/vendors/js/tables/datatable/datatables.min.js') }}"
         type="text/javascript"></script>

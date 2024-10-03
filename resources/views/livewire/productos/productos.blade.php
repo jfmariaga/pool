@@ -61,7 +61,7 @@
                     }
 
                     setTimeout(() => {
-                        resetTable('#table_productos');
+                        __resetTable('#table_productos');
                         this.loading = false;
                     }, 500);
                 },
