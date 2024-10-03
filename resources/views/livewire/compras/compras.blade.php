@@ -10,7 +10,7 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="{{ route('form-compra') }}" id="btn_form_personal" class="btn btn-dark"> 
+                        <a href="{{ route('form-compra') }}" id="btn_form_personal" class="btn btn-dark">
                             <i class="la la-plus"></i> Nuevo
                         </a>
                     </div>
@@ -175,7 +175,7 @@
 
                     // impiamos el contenido de la tabla
                     __destroyTable( '#table' )
-                    
+
                     this.compras.map( async ( i )=>{
                         const addUser = await this.addUser( i )
                     })

@@ -24,6 +24,15 @@
   --color-input: #a6a7aa;
 }
 
+.btn-outline-dark{
+  color: var( --color-text ) !important;
+  border: solid 1px var( --color-text ) !important;
+}
+.btn-outline-dark:hover{
+  color: var( --color-grey ) !important;
+  border: solid 1px var( --color-grey ) !important;
+}
+
 .content_prod{
   background-color: var( --bg );
 }

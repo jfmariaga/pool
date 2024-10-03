@@ -167,7 +167,19 @@
                     "previous": "Anterior"
                 }
             },
-            order:[[0, 'desc']] // si se necesita cambiar como parámetro y se asigna esta por defecto
+            order:[[0, 'desc']], // si se necesita cambiar como parámetro y se asigna esta por defecto
+            // dom: 'Bfrtip',
+            dom: `<'row'<'col-sm-12 text-right'B><'col-md-6 col-sm-12 mostrar_jota'l><'col-md-6 col-sm-12'f>r>t<'row mt-2 footer_tabla'<'col-md-6 col-sm-12'i><'col-md-6 col-sm-12'p>>"`,
+            buttons: [
+                {
+                  extend: 'excelHtml5',
+                  text: 'Descargar Excel',
+                  autoFilter: true,
+                  excelStyles: {
+                    template: "blue_medium"
+                  }
+                },
+              ]
         });
 
         $(id).removeClass('d-none'); // mostramos la table
