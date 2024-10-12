@@ -5,16 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Venta extends Model
+class DetVentasTemporales extends Model
 {
-    protected $table   = 'ventas' ;
+    protected $table   = 'det_ventas_temporales' ;
     protected $guarded = [];
     public $timestamps = false;
-
-
-
-    public function productos()
-    {
-        return $this->hasMany(VentaProducto::class);
-    }
 }

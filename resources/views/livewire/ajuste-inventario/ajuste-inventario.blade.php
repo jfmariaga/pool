@@ -1,4 +1,4 @@
-<div x-data="compras">
+<div x-data="ajusteinventario">
 
     {{-- <span class="loader_new"></span> --}}
 
@@ -6,12 +6,12 @@
         <div class="content-wrapper">
             <div class="content-header row">
                 <div class="content-header-left col-md-6 col-12 mb-2 breadcrumb-new">
-                    <h3 class="content-header-title mb-0 d-inline-block br_none">Compras</h3>
+                    <h3 class="content-header-title mb-0 d-inline-block br_none">Ajustes de inventario</h3>
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="{{ route('form-compra') }}" id="btn_form_personal" class="btn btn-dark">
-                            <i class="la la-plus"></i> Nuevo
+                        <a href="{{ route('form-ajuste-inventario') }}" id="btn_form_personal" class="btn btn-dark">
+                            Nuevo ajuste
                         </a>
                     </div>
                 </div>
@@ -24,7 +24,7 @@
                         <div class="col-md-12 mb-1">
                             <b>Filtros</b>
                         </div>
-                        <div class="col-md-4 d-flex">
+                        <div class="col-md-6 d-flex">
                             <div class="">
                                 {{-- <span x-text="$wire.desde"></span> --}}
                                 <x-input type="date" model="$wire.desde" id="desde" class="form-control" label="Desde"></x-input>
@@ -32,25 +32,7 @@
                             <div class="ml-2">
                                 <x-input type="date" model="$wire.hasta" id="hasta" class="form-control" label="Hasta"></x-input>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <x-select model="$wire.proveedor_id" id="proveedor_id" label="Filtrar por proveedor">
-                                <option value="0">Todos...</option>
-                                @foreach ($proveedores as $i)
-                                    <option value="{{ $i['id'] }}">{{ $i['nombre'] }}</option>
-                                @endforeach
-                            </x-select>
-                        </div>
-                        <div class="col-md-3">
-                            <x-select model="$wire.cuenta_id" id="cuenta_id" label="Filtrar por cuenta">
-                                <option value="0">Todas...</option>
-                                @foreach ($cuentas as $i)
-                                    <option value="{{ $i['id'] }}">{{ $i['nombre'] }}</option>
-                                @endforeach
-                            </x-select>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark" style="margin-top:19px;">Filtrar</button>
+                            <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark ml-2" style="margin-top:19px;">Filtrar</button>
                         </div>
                     </div>
 
@@ -59,9 +41,9 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Registrado por</th>
-                                <th>Proveedor</th>
-                                <th>Método de pago</th>
-                                <th>Total</th>
+                                <th>Ajustes positivos</th>
+                                <th>Ajustes negativos</th>
+                                <th>Productos ajustados</th>
                                 <th>Acc</th>
                             </tr>
                         </x-table>
@@ -74,10 +56,10 @@
         </div>
     </div>
 
-    {{-- comprobante de la compra --}}
+    {{-- comprobante --}}
     <x-modal id="comprobante">
         <x-slot name="title">
-            <span>Comprobante de la compra</span>
+            <span>Detalles</span>
         </x-slot>
         <div class="row scroll_y">
             <template x-if="( typeof comprobante.usuario !== 'undefined' )">
@@ -91,16 +73,12 @@
                         <div x-text="`${comprobante.usuario.name} ${comprobante.usuario.last_name}`"></div>
                     </div>
                     <div class="d-flex">
-                        <div class="w_150px"><b>Proveedor:</b></div>
-                        <div x-text="comprobante.proveedor.nombre"></div>
+                        <div class="w_150px"><b>Ajustes positivos:</b></div>
+                        <div x-text="comprobante.cantidades_positivas"></div>
                     </div>
                     <div class="d-flex">
-                        <div class="w_150px"><b>Método de pago:</b></div>
-                        <div x-text="comprobante.cuenta.nombre"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Total:</b></div>
-                        <div x-text="__numberFormat( comprobante.total )"></div>
+                        <div class="w_150px"><b>Ajustes negativos:</b></div>
+                        <div x-text="comprobante.cantidades_negativas"></div>
                     </div>
                     <div class="">
                         <br><br>
@@ -110,9 +88,9 @@
                                 <tr>
                                     <th>Imagen</th>
                                     <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio de compra</th>
-                                    <th>SubTotal</th>
+                                    <th>Cant sistema</th>
+                                    <th>Cant real</th>
+                                    <th>Ajuste</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -123,12 +101,14 @@
                                         </td>
                                         <td x-text="item.producto.nombre"></td>
                                         <td>
-                                            <span x-text="item.stock_compra"></span>
+                                            <span x-text="item.cant_sistema"></span>
                                         </td>
                                         <td>
-                                            <span x-text="__numberFormat( item.precio_compra )"></span>
+                                            <span x-text="item.cant_real"></span>
                                         </td>
-                                        <td x-text="__numberFormat( __limpiarNum( item.precio_compra ) * item.stock_compra )"></td>
+                                        <td>
+                                            <span x-text="item.cant_ajustada"></span>
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -146,19 +126,13 @@
 
     @script
         <script>
-            Alpine.data('compras', () => ({
+            Alpine.data('ajusteinventario', () => ({
                 loading:        true,
-                compras:        {},
+                ajustes:        {},
                 comprobante:    {},
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
                     this.getTabla()
-                    $('#proveedor_id').change( ()=>{
-                        @this.proveedor_id = $('#proveedor_id').val()
-                    })
-                    $('#cuenta_id').change( ()=>{
-                        @this.cuenta_id = $('#cuenta_id').val()
-                    })
                     $('#desde').change( ()=>{
                         @this.desde = $('#proveedor_id').val()
                     })
@@ -171,36 +145,37 @@
 
                     this.loading = true
 
-                    this.compras = await @this.getTabla() // consultamos
+                    this.ajustes = await @this.getTabla() // consultamos
 
                     // impiamos el contenido de la tabla
                     __destroyTable( '#table' )
 
-                    this.compras.map( async ( i )=>{
-                        const addUser = await this.addUser( i )
+                    this.ajustes.map( async ( i )=>{
+                        const addItem = await this.addItem( i )
                     })
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
                         __resetTable('#table')
                         this.loading = false
                     }, 500);
+
                 },
 
-                async addUser(i) { // agregamos cada item a la tabla
+                async addItem(i) { // agregamos cada item a la tabla
 
                     tr = `<tr id="tr_${i.id}">`
 
                     tr += `
                             <td>${i.fecha}</td>
                             <td>${i.usuario.name} ${i.usuario.last_name}</td>
-                            <td>${i.proveedor.nombre}</td>
-                            <td>${i.cuenta.nombre}</td>
-                            <td>${__numberFormat( i.total )}</td>
+                            <td>${i.cantidades_positivas}</td>
+                            <td>${i.cantidades_negativas}</td>
+                            <td>${i.count_productos}</td>
                             <td>
                                 <div class="d-flex">
                                     <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                    <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm>
-                                    <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>
+                                    <x-buttonsm href="form-ajuste-inventario/${i.id}"><i class="la la-edit"></i> </x-buttonsm>
+                                    <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>
                                 </div>
                             </td>`
 
@@ -226,8 +201,9 @@
                     }
                 },
 
-                showComprobante( compra_id ){
-                    this.comprobante = this.compras.find( (i) => i.id == compra_id )
+                showComprobante( item_id ){
+                    this.comprobante = this.ajustes.find( (i) => i.id == item_id )
+                    console.log(this.comprobante);
                     $('#comprobante').modal( 'show' )
                 }
 

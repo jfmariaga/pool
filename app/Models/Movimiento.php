@@ -11,6 +11,11 @@ class Movimiento extends Model
     protected $guarded = [];
     public $timestamps = false;
 
+    public function adjuntos()
+    {
+        return $this->hasMany(Adjunto::class);
+    }
+
     public function cuenta()
     {
         return $this->belongsTo(Cuenta::class);

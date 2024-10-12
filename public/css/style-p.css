@@ -345,7 +345,7 @@ table td{
 }
 
 .scroll_x {
-  overflow-x: scroll;
+  overflow-x: scroll !important;
 }
 
 .scroll_y {
@@ -390,7 +390,7 @@ table td{
 }
 
 .w_85px{
-  width: 85px;
+  width: 85px !important;
 }
 
 .w_40px{
@@ -693,8 +693,10 @@ table td{
 }
 
 .producto_table{
-  max-width: 80px;
-  max-height: 80px;
+  max-width: 40px;
+  max-height: 40px;
+  /* max-width: 80px;
+  max-height: 80px; */
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -747,4 +749,18 @@ table td{
  align-content: center;
  height: 50px;
  overflow: hidden;
+}
+
+.border_top_none{
+border-top: none !important;
+}
+
+.btn_small{
+  padding: 5px !important;
+  border-radius: 5px !important;
+}
+
+.item_prod_venta{
+  width: 80px;
+  height: 80px;
 }

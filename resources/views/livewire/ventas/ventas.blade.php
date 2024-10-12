@@ -1,4 +1,4 @@
-<div x-data="compras">
+<div x-data="dataalpine">
 
     {{-- <span class="loader_new"></span> --}}
 
@@ -6,12 +6,12 @@
         <div class="content-wrapper">
             <div class="content-header row">
                 <div class="content-header-left col-md-6 col-12 mb-2 breadcrumb-new">
-                    <h3 class="content-header-title mb-0 d-inline-block br_none">Compras</h3>
+                    <h3 class="content-header-title mb-0 d-inline-block br_none">Ventas</h3>
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="{{ route('form-compra') }}" id="btn_form_personal" class="btn btn-dark">
-                            <i class="la la-plus"></i> Nuevo
+                        <a href="{{ route('form-ventas') }}" id="btn_form_personal" class="btn btn-dark">
+                            <i class="la la-plus"></i> Nueva
                         </a>
                     </div>
                 </div>
@@ -20,13 +20,12 @@
             <div class="content-body">
                 <div class="card">
                     {{-- filtros --}}
-                    <div class="row card-body">
+                    {{-- <div class="row card-body">
                         <div class="col-md-12 mb-1">
                             <b>Filtros</b>
                         </div>
                         <div class="col-md-4 d-flex">
                             <div class="">
-                                {{-- <span x-text="$wire.desde"></span> --}}
                                 <x-input type="date" model="$wire.desde" id="desde" class="form-control" label="Desde"></x-input>
                             </div>
                             <div class="ml-2">
@@ -52,14 +51,14 @@
                         <div class="col-md-1">
                             <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark" style="margin-top:19px;">Filtrar</button>
                         </div>
-                    </div>
+                    </div> --}}
 
                     <div x-show="!loading">
                         <x-table id="table" extra="d-none">
                             <tr>
                                 <th>Fecha</th>
                                 <th>Registrado por</th>
-                                <th>Proveedor</th>
+                                <th>Cliente</th>
                                 <th>Método de pago</th>
                                 <th>Total</th>
                                 <th>Acc</th>
@@ -75,7 +74,7 @@
     </div>
 
     {{-- comprobante de la compra --}}
-    <x-modal id="comprobante">
+    {{-- <x-modal id="comprobante">
         <x-slot name="title">
             <span>Comprobante de la compra</span>
         </x-slot>
@@ -142,29 +141,29 @@
                 <button type="button" class="btn grey btn-outline-secondary" data-dismiss="modal">Cerrar</button>
             </span>
         </x-slot>
-    </x-modal>
+    </x-modal> --}}
 
     @script
         <script>
-            Alpine.data('compras', () => ({
+            Alpine.data('dataalpine', () => ({
                 loading:        true,
                 compras:        {},
                 comprobante:    {},
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
                     this.getTabla()
-                    $('#proveedor_id').change( ()=>{
-                        @this.proveedor_id = $('#proveedor_id').val()
-                    })
-                    $('#cuenta_id').change( ()=>{
-                        @this.cuenta_id = $('#cuenta_id').val()
-                    })
-                    $('#desde').change( ()=>{
-                        @this.desde = $('#proveedor_id').val()
-                    })
-                    $('#hasta').change( ()=>{
-                        @this.hasta = $('#cuenta_id').val()
-                    })
+                    // $('#proveedor_id').change( ()=>{
+                    //     @this.proveedor_id = $('#proveedor_id').val()
+                    // })
+                    // $('#cuenta_id').change( ()=>{
+                    //     @this.cuenta_id = $('#cuenta_id').val()
+                    // })
+                    // $('#desde').change( ()=>{
+                    //     @this.desde = $('#proveedor_id').val()
+                    // })
+                    // $('#hasta').change( ()=>{
+                    //     @this.hasta = $('#cuenta_id').val()
+                    // })
                 },
 
                 async getTabla() {
@@ -177,7 +176,7 @@
                     __destroyTable( '#table' )
 
                     this.compras.map( async ( i )=>{
-                        const addUser = await this.addUser( i )
+                        const addItem = await this.addItem( i )
                     })
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
@@ -186,7 +185,7 @@
                     }, 500);
                 },
 
-                async addUser(i) { // agregamos cada item a la tabla
+                async addItem(i) { // agregamos cada item a la tabla
 
                     tr = `<tr id="tr_${i.id}">`
 

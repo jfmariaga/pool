@@ -23,6 +23,7 @@
                                 <th>Precio Base</th>
                                 <th>Categoría</th>
                                 <th>Stock infinito</th>
+                                <th>Stock Disponible</th>
                                 <th>Disponible</th>
                                 <th>Acc</th>
                             </tr>
@@ -89,6 +90,7 @@
                         <td>${valorFormateado}</td>
                         <td>${producto.categoria ? producto.categoria.nombre : 'Sin categoría'}</td>
                         <td>${producto.stock_infinito ? '∞' : 'No'}</td>
+                        <td>${producto.stock}</td>
                         <td>${producto.disponible == 1 ? '<span style="color: green;">✔</span>' : '<span style="color: red;">✘</span>'}</td>
                         <td>
                             <div class="d-flex">

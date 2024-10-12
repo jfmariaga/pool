@@ -9,6 +9,7 @@
   --color-grey: #e5e5e5;
   --color-grey2: #d5d5d5;
   --color-input: #6B6F82;
+  --color-contraste: #fff;
 }
 
 .dark-theme {
@@ -16,21 +17,29 @@
   --bg-menu: #0B0D16;
   --bg-nav: #1a273b;
   --bg-white: #1a273b;
+  /* --bg-input: #fff; */
   --bg-input: #253854;
 
   --color-text: #d6d6d6;
   --color-grey: #1a273b;
   --color-grey2: #d5d5d5;
   --color-input: #a6a7aa;
+  --color-contraste: #d6d6d6;
 }
 
+.select2-dropdown{
+  background: var( --bg ) !important;
+}
 .btn-outline-dark{
   color: var( --color-text ) !important;
   border: solid 1px var( --color-text ) !important;
 }
 .btn-outline-dark:hover{
-  color: var( --color-grey ) !important;
-  border: solid 1px var( --color-grey ) !important;
+  color: var( --color-contraste ) !important;
+}
+
+.btn-outline-dark:hover span{
+  color: var( --color-contraste ) !important;
 }
 
 .content_prod{
@@ -107,4 +116,6 @@ input {
 }
 .select2-container--default .select2-selection--single{
   background-color: var(--bg-input);
+  border: solid 1px var(--color-grey) !important;
+
 }

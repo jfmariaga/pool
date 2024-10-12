@@ -17,4 +17,14 @@ class Producto extends Model
     {
         return $this->belongsTo(Categoria::class, 'categoria_id'); // Clave foránea en la tabla productos
     }
+
+    // Relación: Un producto pertenece a una categoría
+    public function stocks()
+    {
+        return $this->hasMany(DetCompra::class, 'producto_id');
+        // return $this->hasMany(DetCompra::class, 'producto_id', 'id')->sum('stock');
+        // return $this->hasMany(DetCompra::class, 'producto_id')->where('stock', '>', '0')->sum('stock');
+    }
+
+
 }

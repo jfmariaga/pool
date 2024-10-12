@@ -2,14 +2,17 @@
 
 namespace App\Livewire\Productos;
 
-use App\Models\Producto;
-use App\Models\Categoria;
-use App\Traits\General;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManagerStatic as Image;
+
+use App\Models\Producto;
+use App\Models\Categoria;
+use App\Models\DetCompra;
+
+use App\Traits\General;
 
 class Productos extends Component
 {
@@ -33,8 +36,14 @@ class Productos extends Component
 
     public function getProductos()
     {
-        $this->productos = Producto::with('categoria')->get(); // Traemos los productos con su relación de categoría
-        return $this->productos;
+        $productos = Producto::with('categoria')->get(); // Traemos los productos con su relación de categoría
+
+        // consultamos el stock disponible del producto
+        foreach( $productos as $key => $producto ){
+            $productos[$key]->stock = $producto->stocks->sum('stock');
+            unset( $productos[$key]->stocks ); // pa no generar peso el en res, ya que esto puede crecer mucho
+        }
+        return $productos;
     }
 
     public function save()

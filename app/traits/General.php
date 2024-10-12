@@ -20,6 +20,18 @@ trait General {
         }
     }
 
+    // este no quita el punto por los decimales
+    public function __limpiarNumDecimales( $val ){
+        if( $val ){
+            $val = str_replace('$', '', $val);
+            $val = str_replace(' ', '', $val);
+            $val = str_replace(',', '', $val);
+            return $val != '' ? $val : 0;
+        }else{
+            return 0;
+        }
+    }
+
     public function formatFecha( $fecha ){
         $fecha = strtotime($fecha);
         $dia = date('d', $fecha);

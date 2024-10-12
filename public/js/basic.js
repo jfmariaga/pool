@@ -7,7 +7,25 @@
 
         const dark_mode = localStorage.getItem("dark_mode");
         changeDarkMode( dark_mode )
-        // console.log( {dark_mode} )
+        
+        
+        // mask con decimales func nativa
+        $(document).on("input", ".mask_decimales", function (e) {
+            this.value = this.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+            const arr       = this.value.split('.');
+            let entero    = arr[0];
+            let decimals  = arr[1];
+            entero = new Intl.NumberFormat('es-MX').format(entero);
+            if( decimals || decimals == '' ){
+                if( decimals.length > 2 ){
+                    decimals = decimals.substr(0,2)
+                }
+                this.value = entero+'.'+decimals;
+            }else{
+                this.value = entero;
+            }
+
+        });
     });
 
     $('#change-dark-mode').on('click', ()=>{
@@ -71,14 +89,34 @@
         window.location.href = url
     }
 
-    function __numberFormat( number ){
+    function __numberFormat( number, sin_signo = false ){
         // return number;
         // return new Intl.NumberFormat('de-DE').format(number);
+
+        // if( typeof number !== 'undefined' ){
+        //     return '$' + number.toLocaleString();
+        // }else{
+        //     return '$ 0'
+        // }
+
         if( typeof number !== 'undefined' ){
-            return '$' + number.toLocaleString();
+            // let formatter = new Intl.NumberFormat('es-CO', {
+            let formatter = new Intl.NumberFormat('en-US', {
+                // style: 'currency',
+                // currency: 'COP',
+                minimumFractionDigits: 0
+            });
+
+            if( sin_signo ){
+                return formatter.format(number);
+            }else{
+                return '$ ' + formatter.format(number);
+            }
+
         }else{
             return '$ 0'
         }
+
     }
 
 
@@ -196,6 +234,16 @@
             val = val.replace("$","");
             val = val.replace(" ","");
             val = val.replace(".","");
+            val = val.replace(",","");
+        }
+        val = isNaN( val ) ? 0 : val
+        return Number( val );
+    }
+
+    function __limpiarNumDecimales( val ){
+        for(var i = 0; i<=val.length; i++){
+            val = val.replace("$","");
+            val = val.replace(" ","");
             val = val.replace(",","");
         }
         val = isNaN( val ) ? 0 : val

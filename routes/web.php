@@ -21,6 +21,10 @@ use App\Livewire\Proveedores\Proveedores;
 use App\Livewire\Usuarios\Usuarios;
 use App\Livewire\Cuentas\Cuentas;
 use App\Livewire\Movimientos\Movimientos;
+use App\Livewire\AjusteInventario\AjusteInventario;
+use App\Livewire\AjusteInventario\FormAjusteInventario;
+use App\Livewire\Ventas\Ventas;
+use App\Livewire\Ventas\FormVentas;
 
 Route::get('/pruebas', PruebaVelocidad::class);
 
@@ -36,7 +40,12 @@ Route::middleware([AuthGuard::class])->group(function () {
     Route::get('/proveedores', Proveedores::class)->name('proveedores');
     Route::get('/cuentas'    , Cuentas::class)->name('cuentas');
     Route::get('/compras'    , Compras::class)->name('compras');
+    Route::get('/ventas'     , Ventas::class)->name('ventas');
     Route::get('/form-compra/{compra_id?}'    , FormCompra::class)->name('form-compra');
+    Route::get('/ventas'    , Ventas::class)->name('ventas');
+    Route::get('/form-ventas/{venta_id?}'    , FormVentas::class)->name('form-ventas');
+    Route::get('/ajuste-inventario'    , AjusteInventario::class)->name('ajuste-inventario');
+    Route::get('/form-ajuste-inventario/{ajuste_id?}'    , FormAjusteInventario::class)->name('form-ajuste-inventario');
     Route::get('/movimientos', Movimientos::class)->name('movimientos');
 });
 

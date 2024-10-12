@@ -7,5 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class DetVenta extends Model
 {
-    use HasFactory;
+
+    protected $table   = 'det_ventas' ;
+    protected $guarded = [];
+    public $timestamps = false;
+
 }

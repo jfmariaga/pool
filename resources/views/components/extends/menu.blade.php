@@ -8,9 +8,14 @@
                         <span class="menu-title" data-i18n="nav.support_documentation.main">Dashboard</span>
                     </a>
                 </li>
-                <li class="nav-item {{ Route::is('categorias') ? 'active' : '' }}">
-                    <a href="{{ route('categorias') }}" onclick="blockPage()"><i class="fa-solid fa-list"></i>
-                        <span class="menu-title" data-i18n="nav.support_documentation.main">Categorías</span>
+                <li class="nav-item {{ Route::is('ventas') ? 'active' : '' }}">
+                    <a href="{{ route('ventas') }}" onclick="blockPage()"><i class="fa-solid fa-cash-register"></i>
+                        <span class="menu-title" data-i18n="nav.support_documentation.main">Ventas</span>
+                    </a>
+                </li>
+                <li class="nav-item {{ Route::is('form-ventas') ? 'active' : '' }}">
+                    <a href="{{ route('form-ventas') }}" onclick="blockPage()"><i class="fa-solid fa-cash-register"></i>
+                        <span class="menu-title" data-i18n="nav.support_documentation.main">Venta</span>
                     </a>
                 </li>
                 <li class="nav-item {{ Route::is('compras') ? 'active' : '' }}">
@@ -18,17 +23,36 @@
                         <span class="menu-title" data-i18n="nav.support_documentation.main">Compras</span>
                     </a>
                 </li>
-                <li class="nav-item {{ Route::is('productos') ? 'active' : '' }}">
-                    <a href="{{ route('productos') }}" onclick="blockPage()"><i
-                            class="fa-duotone fa-solid fa-layer-group"></i>
+                <!-- Para no hacer extenso el menú -->
+                <li class="nav-item has-sub">
+                    <a href="#"><i class="fa-solid fa-list"></i>
                         <span class="menu-title" data-i18n="nav.support_documentation.main">Productos</span>
                     </a>
-                </li>
-                <li class="nav-item {{ Route::is('proveedores') ? 'active' : '' }}">
-                    <a href="{{ route('proveedores') }}" onclick="blockPage()"><i
-                            class="fa-sharp fa-solid fa-handshake"></i>
-                        <span class="menu-title" data-i18n="nav.support_documentation.main">Proveedores</span>
-                    </a>
+                    <ul class="menu-content">
+                        <li class="nav-item {{ Route::is('productos') ? 'active' : '' }}">
+                            <a href="{{ route('productos') }}" onclick="blockPage()"><i
+                                    class="fa-duotone fa-solid fa-layer-group"></i>
+                                <span class="menu-title" data-i18n="nav.support_documentation.main">Productos</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{ Route::is('categorias') ? 'active' : '' }}">
+                            <a href="{{ route('categorias') }}" onclick="blockPage()"><i class="fa-solid fa-list"></i>
+                                <span class="menu-title" data-i18n="nav.support_documentation.main">Categorías</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{ Route::is('proveedores') ? 'active' : '' }}">
+                            <a href="{{ route('proveedores') }}" onclick="blockPage()"><i
+                                    class="fa-sharp fa-solid fa-handshake"></i>
+                                <span class="menu-title" data-i18n="nav.support_documentation.main">Proveedores</span>
+                            </a>
+                        </li>
+                        <li class="nav-item {{ Route::is('ajuste-inventario') ? 'active' : '' }}">
+                            <a href="{{ route('ajuste-inventario') }}" onclick="blockPage()"><i
+                                    class="fa-sharp fa-solid fa-list"></i>
+                                <span class="menu-title" data-i18n="nav.support_documentation.main">Ajuste de inventario</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <!-- Contabilidad con submenú -->
                 <li class="nav-item has-sub">

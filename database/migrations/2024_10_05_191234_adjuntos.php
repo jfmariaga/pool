@@ -11,13 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ventas', function (Blueprint $table) {
+        Schema::create('adjuntos', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('cliente_id')->constrained('clientes');
-            $table->dateTime('fecha');
-            $table->bigInteger('user_id')->constrained('users');
-            $table->tinyInteger('status');
-            // $table->timestamps();
+            $table->string('ruta'); // Ruta donde se almacena el archivo
+            $table->foreignId('compra_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('movimiento_id')->nullable()->constrained()->onDelete('cascade');
         });
     }
 
@@ -26,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('ventas');
+        //
     }
 };

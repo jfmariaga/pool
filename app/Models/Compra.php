@@ -29,5 +29,10 @@ class Compra extends Model
     {
         return $this->belongsTo(Cuenta::class, 'cuenta_id', 'id');
     }
- 
+
+    public function adjuntos()
+    {
+        return $this->hasMany(Adjunto::class);
+    }
+
 }

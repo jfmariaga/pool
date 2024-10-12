@@ -3,6 +3,7 @@
 namespace App\Livewire\Compras;
 
 use Livewire\Component;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\Proveedores as Proveedor;
 use App\Models\Cuenta;
@@ -13,7 +14,6 @@ use App\Models\Compra;
 use App\Models\DetCompra;
 use App\Models\Movimiento;
 use App\Traits\General;
-use Illuminate\Support\Facades\Auth;
 
 class FormCompra extends Component
 {
@@ -49,7 +49,7 @@ class FormCompra extends Component
                         'imagenes'          => $det['producto']['imagenes'],
                         'cantidad'          => $det['stock_compra'],
                         'vendidos'          => $det['stock_compra'] - $det['stock'],
-                        'precio_compra'     => '$ ' . number_format($det['precio_compra']),
+                        'precio_compra'     => '$ ' . number_format($det['precio_compra'],2),
                         'subtotal'          => $det['stock_compra'] * $det['precio_compra'],
                     ];
                 }
@@ -108,7 +108,7 @@ class FormCompra extends Component
             // agregamos los detalles
             foreach ($this->detalles as $det) {
 
-                $precio_compra = $this->limpiarNum($det['precio_compra']);
+                $precio_compra = $this->__limpiarNumDecimales($det['precio_compra']);
                 $compra->total += $precio_compra * $det['cantidad'];
 
                 if (isset($det['det_id']) && $det['det_id']) { // editar un detalle
