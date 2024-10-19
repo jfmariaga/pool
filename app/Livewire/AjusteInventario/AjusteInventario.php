@@ -22,7 +22,7 @@ class AjusteInventario extends Component
 
     public function render()
     {
-        return view('livewire.ajuste-inventario.ajuste-inventario');
+        return view('livewire.ajuste-inventario.ajuste-inventario')->title('Ajuste Inventario');
     }
 
     public function getTabla(){

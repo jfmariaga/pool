@@ -83,7 +83,7 @@ class Movimientos extends Component
         $newDate = date("Y-m-d", strtotime($this->fecha));
         if ($valorLimpio <= 0) {
             $this->addError('valor', 'El valor debe ser mayor a 0.');
-            return false; 
+            return false;
         }
 
         $this->validate([
@@ -185,7 +185,6 @@ class Movimientos extends Component
             $this->adjuntar($movimiento->id);
         }
 
-        // Actualizar el saldo de la cuenta nueva según el tipo de movimiento
         $cuentaNueva = Cuenta::find($this->cuenta_id);
 
         if ($this->tipo == 'ingreso') {
@@ -196,7 +195,6 @@ class Movimientos extends Component
 
         $cuentaNueva->save();
 
-        // Resetear formulario y retornar los datos
         if ($movimiento) {
             $movimiento->load(['cuenta', 'usuario', 'adjuntos']);
             $this->resetForm();
@@ -211,27 +209,30 @@ class Movimientos extends Component
     {
         $movimiento = Movimiento::find($id);
 
-
-
-        if ($this->adjunto) {
-            // Si el movimiento ya tiene un adjunto, eliminar el archivo y el registro en la DB
+        if ($this->adjunto && is_object($this->adjunto)) {
             if ($movimiento->adjuntos->isNotEmpty()) {
                 foreach ($movimiento->adjuntos as $adjunto) {
-                    Storage::delete($adjunto->ruta);
+                    if (Storage::exists($adjunto->ruta)) {
+                        Storage::delete($adjunto->ruta);
+                    }
                     $adjunto->delete();
                 }
             }
+
             $nombre_original = $this->adjunto->getClientOriginalName();
             $nombre_sin_extension = pathinfo($nombre_original, PATHINFO_FILENAME);
             $extension = $this->adjunto->getClientOriginalExtension();
             $nombre_db = Str::slug($nombre_sin_extension);
             $nombre_a_guardar = $nombre_db . '.' . $extension;
+
             $ruta = $this->adjunto->storeAs('public/adjuntos', $nombre_a_guardar);
 
             Adjunto::create([
                 'ruta' => $ruta,
                 'movimiento_id' => $id,
             ]);
+
+            $this->reset('adjunto');
         }
     }
 

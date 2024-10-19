@@ -26,5 +26,9 @@ class Producto extends Model
         // return $this->hasMany(DetCompra::class, 'producto_id')->where('stock', '>', '0')->sum('stock');
     }
 
+    public function detVentas(){
+        return $this->hasMany(DetVenta::class);
+    }
+
 
 }

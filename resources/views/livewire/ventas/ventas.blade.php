@@ -1,7 +1,75 @@
 <div x-data="dataalpine">
 
     {{-- <span class="loader_new"></span> --}}
+    <style>
+        .invoice-modal {
+            font-family: Arial, sans-serif;
+            background-color: #fff;
+            color: #000;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
 
+        .invoice-modal h3,
+        .invoice-modal h4 {
+            margin: 0;
+            padding: 5px 0;
+            text-align: center;
+        }
+
+        .invoice-modal p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .invoice-modal table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoice-modal table th,
+        .invoice-modal table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .invoice-modal .text-right {
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .invoice-modal .text-center {
+            text-align: center;
+        }
+
+        .invoice-modal hr {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+
+        .invoice-modal .footer {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .text-center {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+
+        .text-center h3,
+        .text-center h4,
+        .text-center p {
+            margin: 5px 0;
+        }
+    </style>
     <div class="app-content content">
         <div class="content-wrapper">
             <div class="content-header row">
@@ -73,82 +141,84 @@
         </div>
     </div>
 
-    {{-- comprobante de la compra --}}
-    {{-- <x-modal id="comprobante">
+    <x-modal id="comprobante" class="invoice-modal">
         <x-slot name="title">
-            <span>Comprobante de la compra</span>
+            <!-- Encabezado del establecimiento -->
+            <div class="text-center">
+                <h3>BLACK POOL</h3>
+                <p>NIT: 123456789</p>
+                <p>Dirección: Chinácota, Norte de Santander</p>
+                <p>Teléfono: +57 123 456 789</p>
+                <h4>FACTURA DE VENTA - RÉGIMEN COMÚN</h4>
+            </div>
         </x-slot>
-        <div class="row scroll_y">
-            <template x-if="( typeof comprobante.usuario !== 'undefined' )">
+
+        <div class="row scroll_y p-4">
+            <template x-if="(typeof comprobante !== 'undefined')">
                 <div class="col-md-12 p-2">
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Fecha:</b></div>
-                        <div x-text="comprobante.fecha"></div>
+                    <div class="d-flex justify-content-between">
+                        <div><strong>Fecha:</strong> <span x-text="comprobante.fecha"></span></div>
+                        <div><strong>Factura No.:</strong> <span x-text="comprobante.id"></span></div>
                     </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Creada por:</b></div>
-                        <div x-text="`${comprobante.usuario.name} ${comprobante.usuario.last_name}`"></div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <div><strong>Cliente:</strong> <span x-text="comprobante.descripcion"></span></div>
+                        <div><strong>Vendedor:</strong> <span
+                                x-text="`${comprobante.usuario.name} ${comprobante.usuario.last_name}`"></span></div>
                     </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Proveedor:</b></div>
-                        <div x-text="comprobante.proveedor.nombre"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Método de pago:</b></div>
-                        <div x-text="comprobante.cuenta.nombre"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Total:</b></div>
-                        <div x-text="__numberFormat( comprobante.total )"></div>
-                    </div>
-                    <div class="">
-                        <br><br>
-                        <b>Lista de productos</b>
-                        <table class="table">
-                            <thead>
+                    <hr>
+
+                    <h4>Detalles de los Productos</h4>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Artículo</th>
+                                <th>Precio</th>
+                                <th>Cant.</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(item, key) in comprobante.det_ventas" :key="key">
                                 <tr>
-                                    <th>Imagen</th>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio de compra</th>
-                                    <th>SubTotal</th>
+                                    <td x-text="item.producto.nombre"></td>
+                                    <td x-text="`${__numberFormat(item.precio_venta)}`"></td>
+                                    <td x-text="item.cant"></td>
+                                    <td x-text="`${__numberFormat(item.precio_venta * item.cant)}`"></td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <template x-for="( item, key ) in comprobante.detalles" :key="key">
-                                    <tr>
-                                        <td>
-                                            <img class="producto_table" :src="`{{ asset('storage/productos/${ item.producto.imagenes != `` ? item.producto.imagenes  : `default.png` }') }}`" alt="prod" style="max-height:30px !important;">
-                                        </td>
-                                        <td x-text="item.producto.nombre"></td>
-                                        <td>
-                                            <span x-text="item.stock_compra"></span>
-                                        </td>
-                                        <td>
-                                            <span x-text="__numberFormat( item.precio_compra )"></span>
-                                        </td>
-                                        <td x-text="__numberFormat( __limpiarNum( item.precio_compra ) * item.stock_compra )"></td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <div class="text-right">
+                        <p><strong>Subtotal:</strong> <span
+                                x-text="`${__numberFormat(comprobante.monto_total)}`"></span></p>
+                        <p><strong>IVA 19%:</strong> <span x-text="`${__numberFormat(comprobante.iva)}`"></span></p>
+                        <p><strong>Total:</strong> <span x-text="`${__numberFormat(comprobante.monto_total)}`"></span>
+                        </p>
+                        <p><strong>Tipo de Pago:</strong> <span x-text="comprobante.cuenta.nombre"></span></p>
                     </div>
                 </div>
             </template>
         </div>
+
         <x-slot name="footer">
-            <span>
+            <div class="text-center">
                 <button type="button" class="btn grey btn-outline-secondary" data-dismiss="modal">Cerrar</button>
-            </span>
+            </div>
         </x-slot>
-    </x-modal> --}}
+    </x-modal>
+
+
+
+
+
 
     @script
         <script>
             Alpine.data('dataalpine', () => ({
-                loading:        true,
-                compras:        {},
-                comprobante:    {},
+                loading: true,
+                compras: {},
+                comprobante: {},
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
                     this.getTabla()
@@ -173,10 +243,10 @@
                     this.compras = await @this.getTabla() // consultamos
 
                     // impiamos el contenido de la tabla
-                    __destroyTable( '#table' )
+                    __destroyTable('#table')
 
-                    this.compras.map( async ( i )=>{
-                        const addItem = await this.addItem( i )
+                    this.compras.map(async (i) => {
+                        const addItem = await this.addItem(i)
                     })
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
@@ -190,16 +260,21 @@
                     tr = `<tr id="tr_${i.id}">`
 
                     tr += `
-                            <td>${i.fecha}</td>
+                            <td>${ __formatDateTime( i.fecha ) }</td>
                             <td>${i.usuario.name} ${i.usuario.last_name}</td>
-                            <td>${i.proveedor.nombre}</td>
+                            <td>${i.descripcion ? i.descripcion: ''}</td>
                             <td>${i.cuenta.nombre}</td>
-                            <td>${__numberFormat( i.total )}</td>
+                            <td>${__numberFormat( i.monto_total )}</td>
                             <td>
                                 <div class="d-flex">
                                     <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                    <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm>
-                                    <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>
+                                    ${
+                                        i.block
+                                        ? ``
+                                        : `<!-- <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm> -->
+                                            <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>`
+                                    }
+                                   
                                 </div>
                             </td>`
 
@@ -208,28 +283,31 @@
                     return true;
                 },
 
-                confirmDelete( id, puede_eliminar ) {
-                    console.log( puede_eliminar )
-                    if( puede_eliminar === 'true' ){
+                confirmDelete(id, puede_eliminar) {
+                    console.log(puede_eliminar)
+                    if (puede_eliminar === 'true') {
                         alertClickCallback('Eliminar',
                             'La entrada será eliminada por completo, las cantidades ingresadas, serán devueltas',
                             'warning', 'Confirmar', 'Cancelar', async () => {
-                            const res = await @this.eliminarCompra(id)
-                            if (res) {
-                                $(`#tr_${id}`).addClass('d-none')
-                                toastRight('error', 'Entrada eliminada')
-                            }
-                        })
-                    }else{
-                        alertMessage('Lo sentimos!', 'No puede eliminar esta venta ya que algunos de sus productos ya fueron vendidos', 'error')
+                                const res = await @this.eliminarCompra(id)
+                                if (res) {
+                                    $(`#tr_${id}`).addClass('d-none')
+                                    toastRight('error', 'Entrada eliminada')
+                                }
+                            })
+                    } else {
+                        alertMessage('Lo sentimos!',
+                            'No puede eliminar esta venta ya que algunos de sus productos ya fueron vendidos',
+                            'error')
                     }
                 },
 
-                showComprobante( compra_id ){
-                    this.comprobante = this.compras.find( (i) => i.id == compra_id )
-                    $('#comprobante').modal( 'show' )
-                }
+                showComprobante(compra_id) {
+                    this.comprobante = this.compras.find((i) => i.id == compra_id)
+                    console.log(this.comprobante);
 
+                    $('#comprobante').modal('show')
+                }
             }))
         </script>
     @endscript

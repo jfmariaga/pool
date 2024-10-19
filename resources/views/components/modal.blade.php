@@ -1,7 +1,7 @@
 
 @props(['id', 'title', 'footer','size' => 'lg'])
 
-<div wire:ignore.self class="modal fade text-left" id="{{ $id }}" tabindex="-1" role="dialog" aria-labelledby="myModalLabel17" aria-hidden="true" data-keyboard="false">
+<div wire:ignore.self class="modal fade text-left" id="{{ $id }}" role="dialog" aria-labelledby="myModalLabel17" aria-hidden="true" data-keyboard="false">
     <div class="modal-dialog modal-{{ $size }}" role="document">
         <div class="modal-content box-shadow-2 bg_white">
             <div class="modal-header">

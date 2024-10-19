@@ -143,15 +143,20 @@
 
                 // agrega un producto al ajuste
                 addProducto( {...producto} ){
-                    // revisamos si ya está en la lista
-                    const exist = @this.detalles.find( (i) => i.id == producto.id )
 
-                    if( exist ){ // si existe solo le sumamos 1
-                        toastRight('warning', 'El producto ya está en la lista de ajuste')
+                    if( producto.stock_infinito == 1 ){
+                        toastRight('warning', 'No puede ajustar un producto con stock infinito!')
                     }else{
-                        producto.stock_sistema  = producto.stock
-                        producto.stock_real     = producto.stock
-                        @this.detalles.push( producto )
+                        // revisamos si ya está en la lista
+                        const exist = @this.detalles.find( (i) => i.id == producto.id )
+    
+                        if( exist ){ // si existe solo le sumamos 1
+                            toastRight('warning', 'El producto ya está en la lista de ajuste')
+                        }else{
+                            producto.stock_sistema  = producto.stock
+                            producto.stock_real     = producto.stock
+                            @this.detalles.push( producto )
+                        }
                     }
                 },
 

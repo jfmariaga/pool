@@ -9,11 +9,12 @@
                 </li>
                 <li class="nav-item h_100 logo_menu align_content">
                     <a class="" href="{{ route('dashboard') }}">
-                        <h1 class="brand-logo">
-                            <b>TU LOGO</b>
-                        </h1>
-                        {{-- <img style="border-radius:8px;height:100%;" class="brand-logo" alt="modern admin logo h_100"
-                            src="{{ asset('gruas/logo.png') }}"> --}}
+                        <center>
+                            <h1 class="brand-logo">
+                                <b>Black Pool</b>
+                            </h1>
+                        </center>
+                        {{-- <img style="border-radius:8px;height:100%;" class="brand-logo" alt="modern admin logo h_100" src="{{ asset('img/logo_pool.png') }}"> --}}
                     </a>
                 </li>
                 <li class="nav-item d-md-none">

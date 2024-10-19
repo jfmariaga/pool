@@ -177,7 +177,7 @@
 
                 async getMovimientos() {
                     this.loading = true;
-                    this.movimientos = await @this.getMovimientos(); 
+                    this.movimientos = await @this.getMovimientos();
                     __destroyTable('#table_movimientos')
 
                     for (const movimiento of this.movimientos) {
@@ -209,11 +209,11 @@
                     }
 
                     // Desactivar botón de edición si no es manual
-                    let editButton = isEditable ?
+                    let editButton = !movimiento.block ? isEditable ?
                         `<x-buttonsm click="openForm('${movimiento.id}')"><i class="la la-edit"></i></x-buttonsm>` :
-                        `<x-buttonsm click="MovimientoAuto()"><i class="la la-edit"></i></x-buttonsm>`;
+                        `<x-buttonsm click="MovimientoAuto()"><i class="la la-edit"></i></x-buttonsm>` : ``;
                     tr += `
-                        <td>${movimiento.fecha}</td>
+                        <td>${ __formatDate( movimiento.fecha ) }</td>
                         <td>${movimiento.cuenta ? movimiento.cuenta.nombre : 'Sin cuenta'}</td>
                         <td>${movimiento.tipo == 'ingreso' ? 'Ingreso' : 'Egreso'}</td>
                         <td>${tipoMovimiento}</td>

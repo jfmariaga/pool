@@ -28,6 +28,14 @@
                                     <button wire:click="abrirNuevaVenta" class="btn btn-outline-dark ml-2"
                                         style="height:40px;">Abrir Venta</button>
                                 </div>
+                                {{-- <div class="col-md-4">
+                                    <x-select model="$wire.producto_id" id="producto_id" label="Producto" required="true">
+                                        <option value="0">Seleccione un producto</option>
+                                        @foreach ($productosall as $producto)
+                                            <option value="{{ $producto->id }}">{{ $producto->nombre }}</option>
+                                        @endforeach
+                                    </x-select>
+                                </div> --}}
                             </div>
                             <hr>
                         </div>
@@ -54,9 +62,20 @@
                                                 @enderror
                                             </div>
                                             <hr>
-
+                                            @if (array_sum(array_column($venta['productos'], 'cantidad')))
+                                                <div class="form-check">
+                                                    <input type="checkbox"
+                                                        wire:change="toggleVentaMayorista({{ $index }})"
+                                                        class="form-check-input"
+                                                        id="venta_mayorista_{{ $index }}"
+                                                        @if ($venta['venta_mayorista']) checked @endif>
+                                                    <label class="form-check-label"
+                                                        for="venta_mayorista_{{ $index }}">Venta al por
+                                                        mayor</label>
+                                                </div>
+                                                <hr>
+                                            @endif
                                             <div class="">
-
                                                 <div class="d-flex">
                                                     <div class="w_150px">
                                                         <b>Cant Productos :</b>
@@ -126,13 +145,6 @@
                             <option value="{{ $producto->id }}">{{ $producto->nombre }}</option>
                         @endforeach
                     </x-select>
-                    {{-- <label for="producto" class="form-label">Producto</label>
-                        <select id="producto" class="form-control" wire:model="producto_id">
-                            <option value="">Seleccione un producto</option>
-                            @foreach ($productosall as $producto)
-                                <option value="{{ $producto->id }}">{{ $producto->nombre }}</option>
-                            @endforeach
-                        </select> --}}
                 </div>
                 <div class="col-3">
                     <label for="cantidad" class="form-label">Cantidad</label>

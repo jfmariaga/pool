@@ -51,7 +51,7 @@ class FormAjusteInventario extends Component
 
     public function render()
     {
-        return view('livewire.ajuste-inventario.form-ajuste-inventario');
+        return view('livewire.ajuste-inventario.form-ajuste-inventario')->title('Formulario Ajuste Inventario');
     }
 
     public function getProductos()

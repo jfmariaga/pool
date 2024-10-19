@@ -13,8 +13,19 @@ class Venta extends Model
 
 
 
-    public function productos()
-    {
-        return $this->hasMany(VentaProducto::class);
-    }
+    // public function productos()
+    // {
+    //     return $this->hasMany(VentaProducto::class);
+    // }
+     public function detVentas(){
+        return $this->hasMany(DetVenta::class);
+     }
+
+     public function usuario(){
+        return $this->belongsTo(User::class, 'user_id');
+     }
+
+     public function cuenta(){
+        return $this->belongsTo(Cuenta::class);
+     }
 }

@@ -14,7 +14,7 @@ class Cuentas extends Component
 
     public function render()
     {
-        return view('livewire.cuentas.cuentas');
+        return view('livewire.cuentas.cuentas')->title('Cuentas');
     }
 
     public function getCuentas(){

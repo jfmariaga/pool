@@ -8,11 +8,14 @@
             @endif
         </label>
     @endif
-    <select class="form-control select2" x-model="{{ $model }}" id="{{$id ?? ''}}" data-minimum-results-for-search="{{ $no_search ?? '' }}">
+    <select class="form-control select2" x-model="{{ $model ?? '' }}" id="{{$id ?? ''}}" data-minimum-results-for-search="{{ $no_search ?? '' }}">
         {{ $slot }}
     </select>
 </div>
-@php
-    $model = str_replace('$wire.','',$model)
-@endphp
-@error( $model ) <span class="c_red">{{ $message }}</span> @enderror
+
+@if ( isset( $model ) && $model )    
+    @php
+        $model = str_replace('$wire.','',$model)
+    @endphp
+    @error( $model ) <span class="c_red">{{ $message }}</span> @enderror
+@endif

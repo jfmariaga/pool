@@ -14,11 +14,12 @@ class Ventas extends Component
     }
 
     public function getTabla(){
-        
-        $this->skipRender(); 
+
+        $this->skipRender();
 
         // por ahora se trae, todo luego se debe optimizar
-        $ventas = Venta::all()->toArray();
+        $ventas = Venta::with('detVentas.producto','usuario','cuenta')->get()->toArray();
+        // dd($ventas);
         return $ventas;
     }
 

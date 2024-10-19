@@ -18,6 +18,11 @@
                         <span class="menu-title" data-i18n="nav.support_documentation.main">Venta</span>
                     </a>
                 </li>
+                <li class="nav-item {{ Route::is('cierre-caja') ? 'active' : '' }}">
+                    <a href="{{ route('cierre-caja') }}" onclick="blockPage()"><i class="fa-solid fa-cash-register"></i>
+                        <span class="menu-title" data-i18n="nav.support_documentation.main">Cierre de caja</span>
+                    </a>
+                </li>
                 <li class="nav-item {{ Route::is('compras') ? 'active' : '' }}">
                     <a href="{{ route('compras') }}" onclick="blockPage()"><i class="fa-solid fa-cart-shopping"></i>
                         <span class="menu-title" data-i18n="nav.support_documentation.main">Compras</span>

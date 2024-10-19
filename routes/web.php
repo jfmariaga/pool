@@ -25,6 +25,7 @@ use App\Livewire\AjusteInventario\AjusteInventario;
 use App\Livewire\AjusteInventario\FormAjusteInventario;
 use App\Livewire\Ventas\Ventas;
 use App\Livewire\Ventas\FormVentas;
+use App\Livewire\CierreCaja\CierreCaja;
 
 Route::get('/pruebas', PruebaVelocidad::class);
 
@@ -39,8 +40,8 @@ Route::middleware([AuthGuard::class])->group(function () {
     Route::get('/productos'  , Productos::class)->name('productos');
     Route::get('/proveedores', Proveedores::class)->name('proveedores');
     Route::get('/cuentas'    , Cuentas::class)->name('cuentas');
+    Route::get('/cierre-caja'    , CierreCaja::class)->name('cierre-caja');
     Route::get('/compras'    , Compras::class)->name('compras');
-    Route::get('/ventas'     , Ventas::class)->name('ventas');
     Route::get('/form-compra/{compra_id?}'    , FormCompra::class)->name('form-compra');
     Route::get('/ventas'    , Ventas::class)->name('ventas');
     Route::get('/form-ventas/{venta_id?}'    , FormVentas::class)->name('form-ventas');

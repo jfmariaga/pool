@@ -52,6 +52,7 @@ class FormVentas extends Component
         return $productos;
     }
 
+
     public function cargarVentasTemporales()
     {
         $ventasTemporales = VentasTemporales::where('user_id', Auth::id())
@@ -61,8 +62,7 @@ class FormVentas extends Component
 
         $this->ventas = [];
 
-        // Mapear los datos para adaptarlos a la estructura de las ventas en Livewire
-        foreach ($ventasTemporales as $venta) {
+        foreach ($ventasTemporales as $ventaIndex => $venta) {
             $productos = $venta->productos->map(function ($productoVenta) {
                 return [
                     'producto_id' => $productoVenta->producto_id,
@@ -72,7 +72,6 @@ class FormVentas extends Component
                 ];
             })->toArray();
 
-            // Calcular el total de la venta sumando el precio total de los productos
             $totalVenta = collect($productos)->sum(function ($producto) {
                 return $producto['precio'] * $producto['cantidad'];
             });
@@ -83,12 +82,18 @@ class FormVentas extends Component
                 'productos' => $productos,
                 'cuenta_id' => $venta->cuenta_id,
                 'venta_temporal_id' => $venta->id,
+                'venta_mayorista' => $venta->venta_mayorista, // Añadimos el campo venta_mayorista
             ];
+
+            // Recalcula los precios si la venta es mayorista
+            if ($venta->venta_mayorista) {
+                $this->recalcularPreciosVenta($ventaIndex);
+            }
         }
 
-        // Opcional por si Samir pide que se muestre cuando va vendido en el dia
         $this->montoTotal = array_sum(array_column($this->ventas, 'monto'));
     }
+
 
 
     public function abrirNuevaVenta()
@@ -110,6 +115,7 @@ class FormVentas extends Component
                 'productos' => [],
                 'cuenta_id' => null,
                 'venta_temporal_id' => $ventaTemporal->id,
+                'venta_mayorista' => false, // Por defecto no es mayorista
             ];
 
             $this->descripcion = '';
@@ -229,8 +235,37 @@ class FormVentas extends Component
         $this->cantidad = 1;
     }
 
+    public function toggleVentaMayorista($index)
+    {
+        if (isset($this->ventas[$index])) {
+            $this->ventas[$index]['venta_mayorista'] = !$this->ventas[$index]['venta_mayorista'];
+            $this->recalcularPreciosVenta($index);
+
+            VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])
+                ->update(['venta_mayorista' => $this->ventas[$index]['venta_mayorista'], 'monto_total' => $this->ventas[$index]['monto']]);
+        }
+    }
+
+    public function recalcularPreciosVenta($index)
+    {
+        foreach ($this->ventas[$index]['productos'] as &$producto) {
+            $productoModel = Producto::find($producto['producto_id']);
+            $nuevoPrecio = $this->ventas[$index]['venta_mayorista'] && $productoModel->precio_mayorista > 0
+                ? $productoModel->precio_mayorista
+                : $productoModel->precio_base;
+
+            $producto['precio'] = $nuevoPrecio;
+        }
+
+        $this->ventas[$index]['monto'] = array_sum(array_map(function ($producto) {
+            return $producto['precio'] * $producto['cantidad'];
+        }, $this->ventas[$index]['productos']));
+    }
+
+
     public function eliminarProducto($ventaIndex, $productoIndex)
     {
+        // Validar si la venta y el producto existen en la posición especificada
         if (!isset($this->ventas[$ventaIndex]) || !isset($this->ventas[$ventaIndex]['productos'][$productoIndex])) {
             $this->emit('showToast', [['type' => 'error', 'message' => 'Producto no encontrado.']]);
             return;
@@ -239,41 +274,51 @@ class FormVentas extends Component
         $venta = $this->ventas[$ventaIndex];
         $producto = $venta['productos'][$productoIndex];
 
-        if (!isset($producto['producto_id']) || !isset($producto['cantidad'])) {
+        // Validamos que el producto tenga su 'producto_id' y 'cantidad'
+        if (!isset($producto['producto_id']) || !isset($producto['cantidad']) || !isset($producto['precio'])) {
             $this->dispatch('showToast', ['type' => 'error', 'message' => 'Producto incompleto.']);
             return;
         }
 
-        $detCompra = DetCompra::where('producto_id', $producto['producto_id'])->first();
+        // Buscamos el registro exacto en 'DetVentasTemporales' usando el producto_id, la cantidad y el precio
+        $detVentaTemporal = DetVentasTemporales::where('venta_temporal_id', $venta['venta_temporal_id'])
+            ->where('producto_id', $producto['producto_id'])
+            ->where('cant', $producto['cantidad'])
+            ->where('precio_venta', $producto['precio'])
+            ->first();
 
-        // Incrementar el stock del producto si se encuentra en DetCompra
-        if ($detCompra) {
-            $detCompra->increment('stock', $producto['cantidad']);
+        if ($detVentaTemporal) {
+            if ($detVentaTemporal->det_compra_id) {
+                $detCompra = DetCompra::find($detVentaTemporal->det_compra_id);
+                if ($detCompra) {
+                    $detCompra->increment('stock', $producto['cantidad']);
+                }
+            }
+
+            DetVentasTemporales::where('id', $detVentaTemporal->id)->delete();
+
+            ProductoVentaTemporal::where('venta_temporal_id', $venta['venta_temporal_id'])
+                ->where('producto_id', $producto['producto_id'])
+                ->where('cantidad', $producto['cantidad'])
+                ->where('precio_unitario', $producto['precio'])
+                ->limit(1)  // Asegurar que eliminamos solo la instancia específica
+                ->delete();
+
+            // Eliminar el producto específico del array en Livewire
+            unset($this->ventas[$ventaIndex]['productos'][$productoIndex]);
+
+            $this->ventas[$ventaIndex]['monto'] = array_sum(array_map(function ($producto) {
+                return $producto['precio'] * $producto['cantidad'];
+            }, $this->ventas[$ventaIndex]['productos']));
+
+            VentasTemporales::find($venta['venta_temporal_id'])
+                ->update(['monto_total' => $this->ventas[$ventaIndex]['monto']]);
+
+            $this->dispatch('showToast', ['type' => 'success', 'message' => 'Producto eliminado y stock actualizado.']);
         } else {
-            $this->dispatch('showToast', ['type' => 'warning', 'message' => 'Producto no encontrado en las compras.']);
+            $this->dispatch('showToast', ['type' => 'error', 'message' => 'El producto no fue encontrado en la base de datos.']);
         }
-
-        unset($this->ventas[$ventaIndex]['productos'][$productoIndex]);
-
-        DetVentasTemporales::where('venta_temporal_id', $venta['venta_temporal_id'])
-            ->where('producto_id', $producto['producto_id'])
-            ->delete();
-
-        ProductoVentaTemporal::where('venta_temporal_id', $venta['venta_temporal_id'])
-            ->where('producto_id', $producto['producto_id'])
-            ->delete();
-
-        $this->ventas[$ventaIndex]['monto'] = array_sum(array_map(function ($producto) {
-            return $producto['precio'] * $producto['cantidad'];
-        }, $this->ventas[$ventaIndex]['productos']));
-
-        VentasTemporales::find($venta['venta_temporal_id'])
-            ->update(['monto_total' => $this->ventas[$ventaIndex]['monto']]);
-
-        $this->dispatch('showToast', ['type' => 'success', 'message' => 'Producto eliminado y stock actualizado.']);
     }
-
-
 
     public function cerrarVenta($index)
     {
@@ -298,6 +343,7 @@ class FormVentas extends Component
                 'cuenta_id' => $this->ventas[$index]['cuenta_id'],
                 'user_id' => Auth::id(),
                 'fecha' => now(),
+                'venta_mayorista' => $this->ventas[$index]['venta_mayorista']
             ]);
 
             // Obtener todos los registros de DetVentasTemporales correspondientes

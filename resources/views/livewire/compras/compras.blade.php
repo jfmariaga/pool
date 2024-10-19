@@ -191,7 +191,7 @@
                     tr = `<tr id="tr_${i.id}">`
 
                     tr += `
-                            <td>${i.fecha}</td>
+                            <td>${ __formatDate( i.fecha ) }</td>
                             <td>${i.usuario.name} ${i.usuario.last_name}</td>
                             <td>${i.proveedor.nombre}</td>
                             <td>${i.cuenta.nombre}</td>
@@ -199,8 +199,13 @@
                             <td>
                                 <div class="d-flex">
                                     <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                    <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm>
-                                    <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>
+                                    ${
+                                        i.block
+                                        ? ``
+                                        : ` <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm>
+                                            <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>`
+                                    }
+                                    
                                 </div>
                             </td>`
 

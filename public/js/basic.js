@@ -126,14 +126,18 @@
         return day;
     }
 
-    function formatDateTime(date){
+    // cuando es fecha y hora
+    function __formatDateTime(date){
+        date = new Date( date )
         const months = ["Jun", "Feb", "Mar","Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-        let formatted_date = date.getDate() + " " + months[date.getMonth()] + " del " + date.getFullYear() + " " + date.toLocaleTimeString();
+        let formatted_date = date.getDate() + " " + months[date.getMonth()] + " " + date.getFullYear() + " " + date.toLocaleTimeString();
+        // let formatted_date = date.getDate() + " " + months[date.getMonth()] + " del " + date.getFullYear() + " " + date.toLocaleTimeString();
         return formatted_date;
     }
 
-    function formatDate(date){
-        console.log(date);
+    // cuando es solo fecha
+    function __formatDate(date){
+        date = new Date( `${ date } 00:01` )
         const months = ["Jun", "Feb", "Mar","Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
         let formatted_date = date.getDate() + " " + months[date.getMonth()] + " del " + date.getFullYear();
         return formatted_date;
