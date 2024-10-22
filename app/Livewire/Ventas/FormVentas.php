@@ -94,8 +94,6 @@ class FormVentas extends Component
         $this->montoTotal = array_sum(array_column($this->ventas, 'monto'));
     }
 
-
-
     public function abrirNuevaVenta()
     {
         $this->validate([
@@ -255,6 +253,15 @@ class FormVentas extends Component
                 : $productoModel->precio_base;
 
             $producto['precio'] = $nuevoPrecio;
+
+            DetVentasTemporales::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])
+                ->where('producto_id', $producto['producto_id'])
+                ->update(['precio_venta' => $nuevoPrecio]); // Asegúrate de usar el campo correcto
+
+            // Actualizar el precio en la tabla producto_venta_temporal
+            ProductoVentaTemporal::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])
+                ->where('producto_id', $producto['producto_id'])
+                ->update(['precio_unitario' => $nuevoPrecio]);
         }
 
         $this->ventas[$index]['monto'] = array_sum(array_map(function ($producto) {
@@ -262,12 +269,11 @@ class FormVentas extends Component
         }, $this->ventas[$index]['productos']));
     }
 
-
     public function eliminarProducto($ventaIndex, $productoIndex)
     {
         // Validar si la venta y el producto existen en la posición especificada
         if (!isset($this->ventas[$ventaIndex]) || !isset($this->ventas[$ventaIndex]['productos'][$productoIndex])) {
-            $this->emit('showToast', [['type' => 'error', 'message' => 'Producto no encontrado.']]);
+            $this->dispatch('showToast', [['type' => 'error', 'message' => 'Producto no encontrado.']]);
             return;
         }
 

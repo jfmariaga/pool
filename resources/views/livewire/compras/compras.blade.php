@@ -10,9 +10,11 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="{{ route('form-compra') }}" id="btn_form_personal" class="btn btn-dark">
-                            <i class="la la-plus"></i> Nuevo
-                        </a>
+                        @can('crear compras')
+                            <a href="{{ route('form-compra') }}" id="btn_form_personal" class="btn btn-dark">
+                                <i class="la la-plus"></i> Nuevo
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -27,10 +29,12 @@
                         <div class="col-md-4 d-flex">
                             <div class="">
                                 {{-- <span x-text="$wire.desde"></span> --}}
-                                <x-input type="date" model="$wire.desde" id="desde" class="form-control" label="Desde"></x-input>
+                                <x-input type="date" model="$wire.desde" id="desde" class="form-control"
+                                    label="Desde"></x-input>
                             </div>
                             <div class="ml-2">
-                                <x-input type="date" model="$wire.hasta" id="hasta" class="form-control" label="Hasta"></x-input>
+                                <x-input type="date" model="$wire.hasta" id="hasta" class="form-control"
+                                    label="Hasta"></x-input>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -50,7 +54,8 @@
                             </x-select>
                         </div>
                         <div class="col-md-1">
-                            <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark" style="margin-top:19px;">Filtrar</button>
+                            <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark"
+                                style="margin-top:19px;">Filtrar</button>
                         </div>
                     </div>
 
@@ -119,7 +124,9 @@
                                 <template x-for="( item, key ) in comprobante.detalles" :key="key">
                                     <tr>
                                         <td>
-                                            <img class="producto_table" :src="`{{ asset('storage/productos/${ item.producto.imagenes != `` ? item.producto.imagenes  : `default.png` }') }}`" alt="prod" style="max-height:30px !important;">
+                                            <img class="producto_table"
+                                                :src="`{{ asset('storage/productos/${ item.producto.imagenes != `` ? item.producto.imagenes  : `default.png` }') }}`"
+                                                alt="prod" style="max-height:30px !important;">
                                         </td>
                                         <td x-text="item.producto.nombre"></td>
                                         <td>
@@ -128,7 +135,9 @@
                                         <td>
                                             <span x-text="__numberFormat( item.precio_compra )"></span>
                                         </td>
-                                        <td x-text="__numberFormat( __limpiarNum( item.precio_compra ) * item.stock_compra )"></td>
+                                        <td
+                                            x-text="__numberFormat( __limpiarNum( item.precio_compra ) * item.stock_compra )">
+                                        </td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -147,22 +156,22 @@
     @script
         <script>
             Alpine.data('compras', () => ({
-                loading:        true,
-                compras:        {},
-                comprobante:    {},
+                loading: true,
+                compras: {},
+                comprobante: {},
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
                     this.getTabla()
-                    $('#proveedor_id').change( ()=>{
+                    $('#proveedor_id').change(() => {
                         @this.proveedor_id = $('#proveedor_id').val()
                     })
-                    $('#cuenta_id').change( ()=>{
+                    $('#cuenta_id').change(() => {
                         @this.cuenta_id = $('#cuenta_id').val()
                     })
-                    $('#desde').change( ()=>{
+                    $('#desde').change(() => {
                         @this.desde = $('#proveedor_id').val()
                     })
-                    $('#hasta').change( ()=>{
+                    $('#hasta').change(() => {
                         @this.hasta = $('#cuenta_id').val()
                     })
                 },
@@ -174,10 +183,10 @@
                     this.compras = await @this.getTabla() // consultamos
 
                     // impiamos el contenido de la tabla
-                    __destroyTable( '#table' )
+                    __destroyTable('#table')
 
-                    this.compras.map( async ( i )=>{
-                        const addUser = await this.addUser( i )
+                    this.compras.map(async (i) => {
+                        const addUser = await this.addUser(i)
                     })
 
                     setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
@@ -197,43 +206,49 @@
                             <td>${i.cuenta.nombre}</td>
                             <td>${__numberFormat( i.total )}</td>
                             <td>
-                                <div class="d-flex">
-                                    <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                    ${
-                                        i.block
-                                        ? ``
-                                        : ` <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm>
-                                            <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>`
-                                    }
-                                    
-                                </div>
-                            </td>`
+                            <div class="d-flex">
+                                <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i></x-buttonsm>
+                                ${
+                                    i.block ? `` :
+                                    `
+                                            @can('editar compras') <!-- Verificación de permiso -->
+                                                <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i></x-buttonsm>
+                                            @endcan
+                                            @can('eliminar compras') <!-- Verificación de permiso -->
+                                                <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                            @endcan
+                                            `
+                                }
+                            </div>
+        </td>`;
 
                     tr += `</tr>`
                     $('#body_table').prepend(tr)
                     return true;
                 },
 
-                confirmDelete( id, puede_eliminar ) {
-                    console.log( puede_eliminar )
-                    if( puede_eliminar === 'true' ){
+                confirmDelete(id, puede_eliminar) {
+                    console.log(puede_eliminar)
+                    if (puede_eliminar === 'true') {
                         alertClickCallback('Eliminar',
                             'La entrada será eliminada por completo, las cantidades ingresadas, serán devueltas',
                             'warning', 'Confirmar', 'Cancelar', async () => {
-                            const res = await @this.eliminarCompra(id)
-                            if (res) {
-                                $(`#tr_${id}`).addClass('d-none')
-                                toastRight('error', 'Entrada eliminada')
-                            }
-                        })
-                    }else{
-                        alertMessage('Lo sentimos!', 'No puede eliminar esta venta ya que algunos de sus productos ya fueron vendidos', 'error')
+                                const res = await @this.eliminarCompra(id)
+                                if (res) {
+                                    $(`#tr_${id}`).addClass('d-none')
+                                    toastRight('error', 'Entrada eliminada')
+                                }
+                            })
+                    } else {
+                        alertMessage('Lo sentimos!',
+                            'No puede eliminar esta venta ya que algunos de sus productos ya fueron vendidos',
+                            'error')
                     }
                 },
 
-                showComprobante( compra_id ){
-                    this.comprobante = this.compras.find( (i) => i.id == compra_id )
-                    $('#comprobante').modal( 'show' )
+                showComprobante(compra_id) {
+                    this.comprobante = this.compras.find((i) => i.id == compra_id)
+                    $('#comprobante').modal('show')
                 }
 
             }))

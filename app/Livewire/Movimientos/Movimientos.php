@@ -252,15 +252,37 @@ class Movimientos extends Component
         $this->resetValidation();
     }
 
-    // public function deleteMovimiento($id)
-    // {
-    //     $movimiento = Movimiento::find($id);
+    public function deleteMovimiento($id)
+    {
+        $movimiento = Movimiento::find($id);
 
-    //     if ($movimiento) {
-    //         $movimiento->delete();
-    //         $this->getMovimientos();
-    //     }
-    // }
+        if ($movimiento->compra_id === null && $movimiento->venta_id === null) {
+            $cuenta = Cuenta::find($movimiento->cuenta_id);
+
+            if ($movimiento->tipo == 'ingreso') {
+                $cuenta->saldo -= $movimiento->monto;
+            } elseif ($movimiento->tipo == 'egreso') {
+                $cuenta->saldo += $movimiento->monto;
+            }
+
+            $cuenta->save();
+
+            if ($movimiento->adjuntos->isNotEmpty()) {
+                foreach ($movimiento->adjuntos as $adjunto) {
+                    if (Storage::exists($adjunto->ruta)) {
+                        Storage::delete($adjunto->ruta);
+                    }
+                    $adjunto->delete();
+                }
+            }
+
+            $movimiento->delete();
+            $this->getMovimientos();
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     public function resetForm()
     {

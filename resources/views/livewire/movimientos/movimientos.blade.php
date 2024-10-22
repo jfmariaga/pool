@@ -8,8 +8,10 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="javascript:" x-on:click="openForm()" id="btn_form_movimiento" class="btn btn-dark"> <i
-                                class="la la-plus"></i> Nuevo Movimiento</a>
+                        @can('crear movimientos')
+                            <a href="javascript:" x-on:click="openForm()" id="btn_form_movimiento" class="btn btn-dark"> <i
+                                    class="la la-plus"></i> Nuevo Movimiento</a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -222,7 +224,17 @@
                         <td>
                             <div class="d-flex">
                                 <x-buttonsm click="showMovimiento('${movimiento.id}')"><i class="la la-eye"></i> </x-buttonsm>
+                                @can('editar movimientos')
                                 ${editButton}
+                                @endcan
+                                @can('eliminar movimientos')
+                                    <template x-if="!movimiento.compra_id && !movimiento.venta_id">
+                                                    <x-buttonsm click="deleteMovimiento('${movimiento.id}')">
+                                                        <i class="la la-trash"></i>
+                                                    </x-buttonsm>
+                                </template>
+                                @endcan
+
                             </div>
                         </td>`;
 
@@ -234,8 +246,26 @@
                     }
                 },
 
-                MovimientoAuto(){
-                    alertMessage('Lo sentimos!', 'No puede editar este movimiento ya que fue generado de manera automática por el sistema, si necesita editar su valor, debe editar la compra o venta que generó el movimiento', 'warning', true)
+                async deleteMovimiento(movimiento_id) {
+                    alertClickCallback('Eliminar Movimiento',
+                        'Esta acción no se puede deshacer.', 'warning',
+                        'Confirmar', 'Cancelar', async () => {
+                            const res = await @this.deleteMovimiento(movimiento_id);
+                            if (res) {
+                                toastRight('success', 'Movimiento eliminado con éxito');
+                                this.getMovimientos();
+                            } else {
+                                toastRight('error',
+                                    'Este movimiento no se puede eliminar porque está vinculado a una compra o venta.'
+                                );
+                            }
+                        });
+                },
+
+                MovimientoAuto() {
+                    alertMessage('Lo sentimos!',
+                        'No puede editar este movimiento ya que fue generado de manera automática por el sistema, si necesita editar su valor, debe editar la compra o venta que generó el movimiento',
+                        'warning', true)
                 },
 
                 async saveFront() {
@@ -311,18 +341,6 @@
                     console.log(this.m)
                     $('#movimiento').modal('show')
                 }
-
-
-                // confirmDelete(movimiento_id) {
-                //     alertClickCallback('Eliminar Movimiento',
-                //         'Esta acción no se puede deshacer.', 'warning',
-                //         'Confirmar', 'Cancelar', async () => {
-                //             const res = await @this.deleteMovimiento(movimiento_id);
-                //             toastRight('success', 'Movimiento eliminado con éxito');
-                //             this.getMovimientos();
-                //         });
-                // },
-
             }));
         </script>
     @endscript

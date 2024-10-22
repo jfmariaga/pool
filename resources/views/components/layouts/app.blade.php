@@ -27,7 +27,7 @@
         href="{{ asset('modernadmin/app-assets/vendors/css/forms/selects/select2.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('css/theme.css') }}">
 
-    
+
 
     <script type="text/javascript" src="{{ asset('assets/jquery.min.js') }}"></script>
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/toastr/toastr.css') }}">

@@ -8,9 +8,11 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="javascript:" x-on:click="openForm()" id="btn_form_cuenta" class="btn btn-dark">
-                            <i class="la la-plus"></i> Nuevo
-                        </a>
+                        @can('crear cuentas')
+                            <a href="javascript:" x-on:click="openForm()" id="btn_form_cuenta" class="btn btn-dark">
+                                <i class="la la-plus"></i> Nuevo
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -89,8 +91,12 @@
                         <td>${ cuenta.status == 1 ?  '<span style="color: green;">✔</span>' : '<span style="color: red;">✘</span>' }</td>
                         <td>
                             <div class="d-flex">
+                                @can('editar cuentas')
                                 <x-buttonsm click="openForm(${cuenta.id})"><i class="la la-edit"></i> </x-buttonsm>
+                                @endcan
+                                @can('eliminar cuentas')
                                 <x-buttonsm click="confirmDelete(${cuenta.id})" color="danger"><i class="la la-trash"></i> </x-buttonsm>
+                                @endcan
                             </div>
                         </td>`
 

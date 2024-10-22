@@ -1,6 +1,5 @@
 <div x-data="dataalpine">
 
-    {{-- <span class="loader_new"></span> --}}
     <style>
         .invoice-modal {
             font-family: Arial, sans-serif;
@@ -70,57 +69,24 @@
             margin: 5px 0;
         }
     </style>
+
     <div class="app-content content">
         <div class="content-wrapper">
             <div class="content-header row">
                 <div class="content-header-left col-md-6 col-12 mb-2 breadcrumb-new">
                     <h3 class="content-header-title mb-0 d-inline-block br_none">Ventas</h3>
                 </div>
-                <div class="content-header-right col-md-6 col-12">
+                {{-- <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
                         <a href="{{ route('form-ventas') }}" id="btn_form_personal" class="btn btn-dark">
                             <i class="la la-plus"></i> Nueva
                         </a>
                     </div>
-                </div>
+                </div> --}}
             </div>
 
             <div class="content-body">
                 <div class="card">
-                    {{-- filtros --}}
-                    {{-- <div class="row card-body">
-                        <div class="col-md-12 mb-1">
-                            <b>Filtros</b>
-                        </div>
-                        <div class="col-md-4 d-flex">
-                            <div class="">
-                                <x-input type="date" model="$wire.desde" id="desde" class="form-control" label="Desde"></x-input>
-                            </div>
-                            <div class="ml-2">
-                                <x-input type="date" model="$wire.hasta" id="hasta" class="form-control" label="Hasta"></x-input>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <x-select model="$wire.proveedor_id" id="proveedor_id" label="Filtrar por proveedor">
-                                <option value="0">Todos...</option>
-                                @foreach ($proveedores as $i)
-                                    <option value="{{ $i['id'] }}">{{ $i['nombre'] }}</option>
-                                @endforeach
-                            </x-select>
-                        </div>
-                        <div class="col-md-3">
-                            <x-select model="$wire.cuenta_id" id="cuenta_id" label="Filtrar por cuenta">
-                                <option value="0">Todas...</option>
-                                @foreach ($cuentas as $i)
-                                    <option value="{{ $i['id'] }}">{{ $i['nombre'] }}</option>
-                                @endforeach
-                            </x-select>
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark" style="margin-top:19px;">Filtrar</button>
-                        </div>
-                    </div> --}}
-
                     <div x-show="!loading">
                         <x-table id="table" extra="d-none">
                             <tr>
@@ -128,6 +94,7 @@
                                 <th>Registrado por</th>
                                 <th>Cliente</th>
                                 <th>Método de pago</th>
+                                <th>Venta al por mayor</th>
                                 <th>Total</th>
                                 <th>Acc</th>
                             </tr>
@@ -143,7 +110,6 @@
 
     <x-modal id="comprobante" class="invoice-modal">
         <x-slot name="title">
-            <!-- Encabezado del establecimiento -->
             <div class="text-center">
                 <h3>BLACK POOL</h3>
                 <p>NIT: 123456789</p>
@@ -173,7 +139,7 @@
                             <tr>
                                 <th>Artículo</th>
                                 <th>Precio</th>
-                                <th>Cant.</th>
+                                <th>Cantidad</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
@@ -181,9 +147,19 @@
                             <template x-for="(item, key) in comprobante.det_ventas" :key="key">
                                 <tr>
                                     <td x-text="item.producto.nombre"></td>
-                                    <td x-text="`${__numberFormat(item.precio_venta)}`"></td>
+                                    <td>
+                                        <span x-if="comprobante.venta_mayorista"
+                                            x-text="__numberFormat(item.producto.precio_mayorista)"></span>
+                                        <span x-if="!comprobante.venta_mayorista"
+                                            x-text="__numberFormat(item.precio_venta)"></span>
+                                    </td>
                                     <td x-text="item.cant"></td>
-                                    <td x-text="`${__numberFormat(item.precio_venta * item.cant)}`"></td>
+                                    <td>
+                                        <span x-if="comprobante.venta_mayorista"
+                                            x-text="__numberFormat(item.producto.precio_mayorista * item.cant)"></span>
+                                        <span x-if="!comprobante.venta_mayorista"
+                                            x-text="__numberFormat(item.precio_venta * item.cant)"></span>
+                                    </td>
                                 </tr>
                             </template>
                         </tbody>
@@ -208,107 +184,196 @@
         </x-slot>
     </x-modal>
 
+    <x-modal id="editVentaModal">
+        <x-slot name="title">
+            Editar Venta
+        </x-slot>
+
+        <div class="modal-body">
+            <label for="descripcion">Descripción</label>
+            <input type="text" wire:model="descripcion" id="descripcion" class="form-control mb-3" />
+
+            <!-- Mostrar si la venta es mayorista o normal -->
+            <div class="mb-3">
+                <label for="tipoVenta">Tipo de Venta:</label>
+                <p id="tipoVenta" class="font-weight-bold">
+                    {{ $venta_mayorista ? 'Venta al por mayor' : 'Venta normal' }}
+                </p>
+            </div>
+            <div class="d-flex align-items-center mb-3">
+                <div class="flex-grow-1 mr-2">
+                    <x-select model="$wire.producto_id" id="producto_id" label="Producto" required="true">
+                        <option value="0">Seleccione un producto</option>
+                        @foreach ($productosall as $producto)
+                            <option value="{{ $producto->id }}">{{ $producto->nombre }}</option>
+                        @endforeach
+                    </x-select>
+                </div>
+
+                <div class="mr-2 mt-1" style="width: 80px;">
+                    <input type="number" wire:model="cantidad" class="form-control" placeholder="Cantidad" />
+                </div>
+
+                <button wire:click="agregarProducto" class="btn btn-primary mt-1"
+                    style="min-width: 100px;">Agregar</button>
+            </div>
+
+            <label for="productos">Productos</label>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!empty($productos) && is_array($productos))
+                        @foreach ($productos as $index => $producto)
+                            <tr>
+                                <td><input type="text" readonly wire:model="productos.{{ $index }}.nombre"
+                                        class="form-control" /></td>
+                                <td><input type="number" wire:model="productos.{{ $index }}.cantidad"
+                                        class="form-control" /></td>
+                                <td>
+                                    {{ number_format($producto['precio'], 2) }}
+                                </td>
+                                <td>
+                                    {{ number_format($producto['precio'] * $producto['cantidad'], 2) }}
+                                </td>
+                                <td>
+                                    <button wire:click="eliminarProducto({{ $index }})"
+                                        class="btn btn-danger">Eliminar</button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td colspan="5" class="text-center">No hay productos para mostrar.</td>
+                        </tr>
+                    @endif
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>Total Venta:</strong></td>
+                        <td colspan="2">{{ number_format($montoTotal, 2) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <label for="cuenta_id">Cuenta</label>
+            <select wire:model="cuenta_id" id="cuenta_id" class="form-control mb-3">
+                @foreach ($cuentas as $cuenta)
+                    <option value="{{ $cuenta->id }}">{{ $cuenta->nombre }}</option>
+                @endforeach
+            </select>
+        </div>
 
 
+        <x-slot name="footer">
+            <button wire:click="updateVenta" class="btn btn-primary">Guardar Cambios</button>
+        </x-slot>
 
-
+    </x-modal>
 
     @script
         <script>
+            document.addEventListener('livewire:init', function() {
+                Livewire.on('showToast', (data) => {
+                    const toastData = data[0];
+                    toastRight(toastData.type, toastData.message);
+                });
+            });
+
+
             Alpine.data('dataalpine', () => ({
                 loading: true,
                 compras: {},
                 comprobante: {},
 
-                init() { // se ejecuta cuando ya la aplicación esta lista visualmente
+                init() {
                     this.getTabla()
-                    // $('#proveedor_id').change( ()=>{
-                    //     @this.proveedor_id = $('#proveedor_id').val()
-                    // })
-                    // $('#cuenta_id').change( ()=>{
-                    //     @this.cuenta_id = $('#cuenta_id').val()
-                    // })
-                    // $('#desde').change( ()=>{
-                    //     @this.desde = $('#proveedor_id').val()
-                    // })
-                    // $('#hasta').change( ()=>{
-                    //     @this.hasta = $('#cuenta_id').val()
-                    // })
+                    window.addEventListener('openEditModal', () => {
+                        $('#editVentaModal').modal('show');
+                    });
+
+                    window.addEventListener('closeModal', () => {
+                        $('#editVentaModal').modal('hide');
+                        this.getTabla();
+                        toastRight('success', 'Venta actualizada con éxito.');
+                    });
+
+                    $('#producto_id').change(() => {
+                        @this.producto_id = $('#producto_id').val()
+                    })
                 },
 
                 async getTabla() {
-
-                    this.loading = true
-
-                    this.compras = await @this.getTabla() // consultamos
-
-                    // impiamos el contenido de la tabla
-                    __destroyTable('#table')
-
+                    this.loading = true;
+                    this.compras = await @this.getTabla();
+                    __destroyTable('#table');
                     this.compras.map(async (i) => {
-                        const addItem = await this.addItem(i)
-                    })
-
-                    setTimeout(() => { // necesario para que no se renderice datatable antes de haber cargado el body
-                        __resetTable('#table')
-                        this.loading = false
+                        await this.addItem(i);
+                    });
+                    setTimeout(() => {
+                        __resetTable('#table');
+                        this.loading = false;
                     }, 500);
                 },
 
-                async addItem(i) { // agregamos cada item a la tabla
+                async addItem(i) {
+                    console.log(i);
 
-                    tr = `<tr id="tr_${i.id}">`
+                    const ventaMayorista = i.venta_mayorista ? 'Mayorista' : 'Normal';
+                    let tr = `<tr id="tr_${i.id}">
+                                <td>${ __formatDateTime( i.fecha ) }</td>
+                                <td>${i.usuario.name} ${i.usuario.last_name}</td>
+                                <td>${i.descripcion || ''}</td>
+                                <td>${i.cuenta.nombre}</td>
+                                <td>${ventaMayorista}</td>
+                                <td>${__numberFormat( i.monto_total )}</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
+                                        @can('editar ventas')
+                                            <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
+                                        @endcan
+                                        @can('eliminar ventas')
+                                            <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                        @endcan
+                                    </div>
+                                </td>
+                            </tr>`;
 
-                    tr += `
-                            <td>${ __formatDateTime( i.fecha ) }</td>
-                            <td>${i.usuario.name} ${i.usuario.last_name}</td>
-                            <td>${i.descripcion ? i.descripcion: ''}</td>
-                            <td>${i.cuenta.nombre}</td>
-                            <td>${__numberFormat( i.monto_total )}</td>
-                            <td>
-                                <div class="d-flex">
-                                    <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                    ${
-                                        i.block
-                                        ? ``
-                                        : `<!-- <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i> </x-buttonsm> -->
-                                            <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i> </x-buttonsm>`
-                                    }
-                                   
-                                </div>
-                            </td>`
-
-                    tr += `</tr>`
-                    $('#body_table').prepend(tr)
+                    $('#body_table').prepend(tr);
                     return true;
                 },
 
-                confirmDelete(id, puede_eliminar) {
-                    console.log(puede_eliminar)
-                    if (puede_eliminar === 'true') {
-                        alertClickCallback('Eliminar',
-                            'La entrada será eliminada por completo, las cantidades ingresadas, serán devueltas',
-                            'warning', 'Confirmar', 'Cancelar', async () => {
-                                const res = await @this.eliminarCompra(id)
-                                if (res) {
-                                    $(`#tr_${id}`).addClass('d-none')
-                                    toastRight('error', 'Entrada eliminada')
-                                }
-                            })
-                    } else {
-                        alertMessage('Lo sentimos!',
-                            'No puede eliminar esta venta ya que algunos de sus productos ya fueron vendidos',
-                            'error')
-                    }
+                confirmEdit(id) {
+                    @this.editVenta(id);
+                },
+
+                async confirmDelete(id) {
+                    alertClickCallback('Eliminar Venta',
+                        'Al eliminar esta venta, los productos regresarán al inventario y los saldos se ajustarán.',
+                        'warning', 'Confirmar', 'Cancelar', async () => {
+                            const res = await @this.call('deleteVenta', id);
+                            if (res) {
+                                $(`#tr_${id}`).addClass('d-none');
+                                toastRight('success', 'Venta eliminada con éxito.');
+                            } else {
+                                toastRight('error', 'Error al eliminar la venta.');
+                            }
+                        });
                 },
 
                 showComprobante(compra_id) {
-                    this.comprobante = this.compras.find((i) => i.id == compra_id)
-                    console.log(this.comprobante);
-
-                    $('#comprobante').modal('show')
+                    this.comprobante = this.compras.find((i) => i.id == compra_id);
+                    $('#comprobante').modal('show');
                 }
-            }))
+            }));
         </script>
     @endscript
 </div>

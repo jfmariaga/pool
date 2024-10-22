@@ -8,9 +8,12 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="javascript:" x-on:click="$('#form-cierre').modal('show')" id="btn_form_personal" class="btn btn-dark"> 
-                            Cerrar Caja
-                        </a>
+                        @can('crear cierre-caja')
+                            <a href="javascript:" x-on:click="$('#form-cierre').modal('show')" id="btn_form_personal"
+                                class="btn btn-dark">
+                                Cerrar Caja
+                            </a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -43,9 +46,9 @@
     @script
         <script>
             Alpine.data('dataalpine', () => ({
-                cierres:        [],
-                comprobante:    [],
-                loading:        true,
+                cierres: [],
+                comprobante: [],
+                loading: true,
                 loading_cierre: false,
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
@@ -102,26 +105,28 @@
                         'warning', 'Confirmar', 'Cancelar', async () => {
 
                             this.loading_cierre = true
-        
+
                             const cierre = await @this.cierreCaja()
-        
+
                             if (cierre) {
                                 this.addItem(cierre)
                                 $('#form-cierre').modal('hide')
                                 this.cierres.push(cierre)
                                 toastRight('success', 'Cierre de caja realizado con éxito!')
-                            }else{
+                            } else {
                                 toastRight('error', 'La consulta falló, por favor cuelva a intentarlo')
                             }
-                            
+
                             this.loading_cierre = false
-                            
-                    })
+
+                        })
                 },
 
-                showComprobante( cierre_id ){
-                    this.comprobante = {...this.cierres.find( (i) => i.id == cierre_id )}
-                    $('#comprobante-cierre').modal( 'show' )
+                showComprobante(cierre_id) {
+                    this.comprobante = {
+                        ...this.cierres.find((i) => i.id == cierre_id)
+                    }
+                    $('#comprobante-cierre').modal('show')
                 }
 
             }))

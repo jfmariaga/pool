@@ -8,8 +8,10 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        <a href="javascript:" x-on:click="openForm()" id="btn_form_proveedores" class="btn btn-dark"> <i
-                                class="la la-plus"></i> Nuevo</a>
+                        @can('crear proveedores')
+                            <a href="javascript:" x-on:click="openForm()" id="btn_form_proveedores" class="btn btn-dark"> <i
+                                    class="la la-plus"></i> Nuevo</a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -92,8 +94,12 @@
                         <td>${ proveedor.status == 1 ?  '<span style="color: green;">✔</span>' : '<span style="color: red;">✘</span>'}</td>
                         <td>
                             <div class="d-flex">
+                                @can('editar proveedores')
                                 <x-buttonsm click="openForm(${proveedor.id})"><i class="la la-edit"></i> </x-buttonsm>
+                                @endcan
+                                @can('eliminar proveedores')
                                 <x-buttonsm click="confirmDelete(${proveedor.id})" color="danger"><i class="la la-trash"></i> </x-buttonsm>
+                                @endcan
                             </div>
                         </td>`
 
