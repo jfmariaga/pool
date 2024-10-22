@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
             'phone'     => '3045613903',
             'picture'   => '',
             'status'    => 1,
-        ]);
+        ])->assignRole('SuperAdmin');;
 
         // cliente default
         Cliente::create([
