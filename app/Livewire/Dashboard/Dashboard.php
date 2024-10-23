@@ -59,23 +59,23 @@ class Dashboard extends Component
             ->limit(5)
             ->pluck('total_vendido', 'productos.nombre');
 
-        // Filtrar ranking de productos por ganancias por fecha
-        $this->ranking_productos = DB::table('det_ventas as dv')
+            $this->ranking_productos = DB::table('det_ventas as dv')
             ->select('p.nombre', DB::raw('SUM(
-        CASE
-            WHEN dc.precio_compra IS NULL OR dc.precio_compra = 0 THEN
-                dv.cant * dv.precio_venta
-            ELSE
-                dv.cant * (dv.precio_venta - dc.precio_compra)
-        END) AS total_ganancia'))
+                CASE
+                    WHEN dc.precio_compra IS NULL OR dc.precio_compra = 0 THEN
+                        dv.cant * dv.precio_venta
+                    ELSE
+                        dv.cant * (dv.precio_venta - dc.precio_compra)
+                END) AS total_ganancia'))
             ->join('ventas as v', 'v.id', '=', 'dv.venta_id')
             ->join('productos as p', 'p.id', '=', 'dv.producto_id')
             ->leftJoin('det_compras as dc', 'dc.id', '=', 'dv.det_compra_id') // Asegúrate de usar el campo correcto
             ->whereBetween('v.fecha', [$start, $end])
-            ->groupBy('p.id') // Agrupamos por ID del producto
+            ->groupBy('p.id', 'p.nombre') // Agrupamos por ID y nombre del producto
             ->orderBy('total_ganancia', 'desc')
             ->limit(5)
             ->pluck('total_ganancia', 'p.nombre'); // Mostrar el total ganancia por nombre del producto
+
 
 
         $this->ganancia_real = DB::table('det_ventas')

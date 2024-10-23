@@ -27,7 +27,7 @@ use App\Livewire\Ventas\FormVentas;
 use App\Livewire\CierreCaja\CierreCaja;
 use App\Livewire\Roles\Roles;
 
-Route::get('/pruebas', PruebaVelocidad::class);
+// Route::get('/pruebas', PruebaVelocidad::class);
 
 Route::get('/', Login::class);
 Route::get('/login', Login::class);
