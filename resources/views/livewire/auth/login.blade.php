@@ -21,6 +21,11 @@
                                 </div>
                                 <div class="card-content">
                                     <div class="card-body">
+                                        @if (session('status'))
+                                            <div class="alert alert-danger">
+                                                {{ session('status') }}
+                                            </div>
+                                        @endif
                                         <form class="form-horizontal" wire:submit="login">
                                             <fieldset class="form-group position-relative has-icon-left">
                                                 <input type="text" class="form-control" x-model="$wire.user"

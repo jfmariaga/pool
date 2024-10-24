@@ -16,7 +16,11 @@ class Auth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if( CheckAuth::check() ){
+        if (CheckAuth::check()) {
+            $user = CheckAuth::user();
+            if ($user->status == 0) {
+                return redirect('/login')->with('status', 'Tu cuenta está inactiva. Por favor, contacta al administrador.');
+            }
             return $next($request);
         }
         return redirect('/login');

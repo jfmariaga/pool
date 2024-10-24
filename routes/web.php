@@ -34,37 +34,22 @@ Route::get('/login', Login::class);
 
 Route::middleware([AuthGuard::class])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard')->middleware('can:ver dashboard');
-
     Route::get('/usuarios', Usuarios::class)->name('usuarios')->middleware('can:ver usuarios');
-
     Route::get('/categorias', Categorias::class)->name('categorias')->middleware('can:ver categorias');
-
     Route::get('/productos', Productos::class)->name('productos')->middleware('can:ver productos');
-
     Route::get('/proveedores', Proveedores::class)->name('proveedores')->middleware('can:ver proveedores');
-
     Route::get('/cuentas', Cuentas::class)->name('cuentas')->middleware('can:ver cuentas');
-
     Route::get('/cierre-caja', CierreCaja::class)->name('cierre-caja')->middleware('can:ver cierre-caja');
-
     Route::get('/compras', Compras::class)->name('compras')->middleware('can:ver compras');
-
     Route::get('/form-compra/{compra_id?}', FormCompra::class)->name('form-compra')->middleware('can:crear compras');
-
     Route::get('/ventas', Ventas::class)->name('ventas')->middleware('can:ver ventas');
-
     Route::get('/form-ventas/{venta_id?}', FormVentas::class)->name('form-ventas')->middleware('can:crear ventas');
-
     Route::get('/ajuste-inventario', AjusteInventario::class)->name('ajuste-inventario')->middleware('can:ver ajuste-inventario');
-
     Route::get('/form-ajuste-inventario/{ajuste_id?}', FormAjusteInventario::class)->name('form-ajuste-inventario')->middleware('can:crear ajuste-inventario');
-
     Route::get('/movimientos', Movimientos::class)->name('movimientos')->middleware('can:ver movimientos');
-
     Route::get('/roles', Roles::class)->name('roles')->middleware('can:ver roles');
 });
 
-//logout
 Route::post('logout', function () {
     Auth::logout();
     Session::flush();

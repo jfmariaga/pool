@@ -20,7 +20,6 @@ class Usuarios extends Component
 
     public function mount()
     {
-        // Cargamos los roles disponibles
         $this->roles = Role::all();
     }
 
@@ -31,33 +30,27 @@ class Usuarios extends Component
 
     public function selectedRole($role_id)
     {
-        // Asignamos el rol seleccionado
         $this->role_id = $role_id;
     }
 
     public function getUsers()
     {
         $this->skipRender();
-        // Traemos los usuarios con sus roles
         return User::with('roles')->get();
     }
 
     public function save()
     {
-        // Determinar si la contraseña es requerida o no
-        $required_password = $this->user_id ? '' : 'required|min:8';
-
-        // Validar los campos
         $this->validate([
             'document'  => 'required',
             'name'      => 'required',
             'last_name' => 'required',
-            'user_name' => 'required|min:8',
+            'user_name' => 'required|min:1',
             'email'     => 'required|email|unique:users,email,' . $this->user_id,
             'password'  => $this->user_id
                 ? 'nullable|min:8|regex:/[A-Z]/|regex:/[a-z]/|regex:/[0-9]/|regex:/[\W_]/'
                 : 'required|min:8|regex:/[A-Z]/|regex:/[a-z]/|regex:/[0-9]/|regex:/[\W_]/',
-            'role_id'   => 'required', // Validamos que el rol esté seleccionado
+            'role_id'   => 'required',
         ]);
 
         $role = Role::findById($this->role_id);
@@ -70,13 +63,11 @@ class Usuarios extends Component
         }
 
         if ($this->user_id) {
-            // Actualizar usuario existente
             $user = User::find($this->user_id);
             if ($user) {
                 if ($this->change_picture && $user->picture) {
                     Storage::disk('public')->delete('avatars/' . $user->picture);
                 }
-                // Crear un array con los datos a actualizar
                 $dataToUpdate = [
                     'document'  => $this->document,
                     'name'      => $this->name,
@@ -95,11 +86,9 @@ class Usuarios extends Component
 
                 $user->update($dataToUpdate);
 
-                // Sincronizar roles
                 $user->syncRoles($role);
             }
         } else {
-            // Crear nuevo usuario
             $user = User::create([
                 'document'  => $this->document,
                 'name'      => $this->name,
@@ -112,11 +101,9 @@ class Usuarios extends Component
                 'status'    => 1,
             ]);
 
-            // Asignar rol al usuario
             $user->assignRole($role);
         }
 
-        // Si el usuario se creó o actualizó correctamente, restablecemos el formulario
         if ($user) {
             $user->load(['roles']);
             $this->reset();
@@ -147,6 +134,7 @@ class Usuarios extends Component
         if ($user) {
             $user->update(['status' => 0]);
             $user->load(['roles']);
+            $this->reset();
             $this->mount();
             return $user->toArray();
         } else {

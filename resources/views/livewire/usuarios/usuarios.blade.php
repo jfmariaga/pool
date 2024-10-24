@@ -58,6 +58,11 @@
                         val = $('#role').val()
                         @this.role_id = val
                     })
+
+                    $('#status').change(() => {
+                        val = $('#status').val()
+                        @this.status = val
+                    })
                 },
 
                 async getUsers() {
