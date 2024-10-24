@@ -10,7 +10,9 @@ use App\Models\Compra;
 use App\Models\Cuenta;
 use App\Models\DetCierreCaja;
 use App\Models\Movimiento;
+use App\Models\User;
 use App\Models\Venta;
+use App\Notifications\CierreCajaNotificacion;
 
 class CierreCaja extends Component
 {
@@ -129,14 +131,15 @@ class CierreCaja extends Component
         $ult_compra     = Compra::orderBy('id', 'desc')->first();
         $ult_venta      = Venta::orderBy('id', 'desc')->first();
         $ult_movimiento = Movimiento::orderBy('id', 'desc')->first();
+        // dd($ult_compra->id ,$ult_venta,$ult_movimiento->id);
 
         // creamos el cierre de caja
         $cierre = ModelCierreCaja::create([
             'user_id'        => Auth::id(),
             'fecha'          => date('Y-m-d H:i'),
-            'ult_compra'     => $ult_compra->id,
-            'ult_venta'      => $ult_venta->id,
-            'ult_movimiento' => $ult_movimiento->id,
+            'ult_compra'     => $ult_compra ? $ult_compra->id: 0,
+            'ult_venta'      => $ult_venta ? $ult_venta->id: 0 ,
+            'ult_movimiento' => $ult_movimiento ? $ult_movimiento->id: 0,
             'total_inicio'   => $this->total_inicio,
             'total_cierre'   => $this->total_cierre,
             'total_ventas'   => $this->total_ventas,
@@ -159,13 +162,21 @@ class CierreCaja extends Component
                 ]);
             }
 
+            $superAdmin = User::whereHas('roles', function($query) {
+                $query->where('name', 'SuperAdmin');
+            })->first();
+
+            if ($superAdmin) {
+                $superAdmin->notify(new CierreCajaNotificacion($cierre->toArray()));
+            }
+
             $this->getUltCierre();
 
             // bloqueamos el edit y delete, de ventas, compras y movimientos, hechos hasta este momento
             Venta::where('id', '<=', $ult_venta->id)->update( [ 'block' => 1 ] );
             Compra::where('id', '<=', $ult_compra->id)->update( [ 'block' => 1 ] );
             Movimiento::where('id', '<=', $ult_movimiento->id)->update( [ 'block' => 1 ] );
-    
+
             // retornamos el nuevo cierre para agregarlo a la tabla
             return ModelCierreCaja::where('id', $cierre->id)->with('usuario', 'detalles.cuenta')->first()->toArray();
         }

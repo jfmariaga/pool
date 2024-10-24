@@ -32,7 +32,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::YVh7fbtwBAy6XRTO',
+            '_route' => 'generated::G5SMUVVlNMZ5CKWW',
           ),
           1 => NULL,
           2 => 
@@ -52,7 +52,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::xnPpxT8spDEVEiix',
+            '_route' => 'generated::fS6qIexYOYiyPwtX',
           ),
           1 => NULL,
           2 => 
@@ -91,27 +91,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::rCTpg2cQiEyi2mT0',
-          ),
-          1 => NULL,
-          2 => 
-          array (
-            'GET' => 0,
-            'HEAD' => 1,
-          ),
-          3 => NULL,
-          4 => false,
-          5 => false,
-          6 => NULL,
-        ),
-      ),
-      '/pruebas' => 
-      array (
-        0 => 
-        array (
-          0 => 
-          array (
-            '_route' => 'generated::jY8wOvOxksp4cvyC',
+            '_route' => 'generated::FuIYxgAWm2iCI9ri',
           ),
           1 => NULL,
           2 => 
@@ -131,7 +111,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::4beNUfScNYPYgLDF',
+            '_route' => 'generated::bQayM9qKbncNCpl5',
           ),
           1 => NULL,
           2 => 
@@ -151,7 +131,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 
           array (
-            '_route' => 'generated::YZTHPeCvk8xt5quB',
+            '_route' => 'generated::rhEhvYUNrVAWaIka',
           ),
           1 => NULL,
           2 => 
@@ -572,7 +552,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::YVh7fbtwBAy6XRTO' => 
+    'generated::G5SMUVVlNMZ5CKWW' => 
     array (
       'methods' => 
       array (
@@ -584,7 +564,7 @@ app('router')->setCompiledRoutes(
       array (
         'uses' => 'Livewire\\Mechanisms\\FrontendAssets\\FrontendAssets@returnJavaScriptAsFile',
         'controller' => 'Livewire\\Mechanisms\\FrontendAssets\\FrontendAssets@returnJavaScriptAsFile',
-        'as' => 'generated::YVh7fbtwBAy6XRTO',
+        'as' => 'generated::G5SMUVVlNMZ5CKWW',
       ),
       'fallback' => false,
       'defaults' => 
@@ -600,7 +580,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::xnPpxT8spDEVEiix' => 
+    'generated::fS6qIexYOYiyPwtX' => 
     array (
       'methods' => 
       array (
@@ -612,7 +592,7 @@ app('router')->setCompiledRoutes(
       array (
         'uses' => 'Livewire\\Mechanisms\\FrontendAssets\\FrontendAssets@maps',
         'controller' => 'Livewire\\Mechanisms\\FrontendAssets\\FrontendAssets@maps',
-        'as' => 'generated::xnPpxT8spDEVEiix',
+        'as' => 'generated::fS6qIexYOYiyPwtX',
       ),
       'fallback' => false,
       'defaults' => 
@@ -683,7 +663,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::rCTpg2cQiEyi2mT0' => 
+    'generated::FuIYxgAWm2iCI9ri' => 
     array (
       'methods' => 
       array (
@@ -698,7 +678,7 @@ app('router')->setCompiledRoutes(
 
                     return \\Illuminate\\Support\\Facades\\View::file(\'C:\\\\Users\\\\auxtecnologia\\\\Dropbox\\\\pool\\\\vendor\\\\laravel\\\\framework\\\\src\\\\Illuminate\\\\Foundation\\\\Configuration\'.\'/../resources/health-up.blade.php\');
                 }";s:5:"scope";s:54:"Illuminate\\Foundation\\Configuration\\ApplicationBuilder";s:4:"this";N;s:4:"self";s:32:"00000000000004880000000000000000";}}',
-        'as' => 'generated::rCTpg2cQiEyi2mT0',
+        'as' => 'generated::FuIYxgAWm2iCI9ri',
       ),
       'fallback' => false,
       'defaults' => 
@@ -714,44 +694,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::jY8wOvOxksp4cvyC' => 
-    array (
-      'methods' => 
-      array (
-        0 => 'GET',
-        1 => 'HEAD',
-      ),
-      'uri' => 'pruebas',
-      'action' => 
-      array (
-        'middleware' => 
-        array (
-          0 => 'web',
-        ),
-        'uses' => 'App\\Livewire\\Pruebas\\PruebaVelocidad@__invoke',
-        'controller' => 'App\\Livewire\\Pruebas\\PruebaVelocidad',
-        'namespace' => NULL,
-        'prefix' => '',
-        'where' => 
-        array (
-        ),
-        'as' => 'generated::jY8wOvOxksp4cvyC',
-      ),
-      'fallback' => false,
-      'defaults' => 
-      array (
-      ),
-      'wheres' => 
-      array (
-      ),
-      'bindingFields' => 
-      array (
-      ),
-      'lockSeconds' => NULL,
-      'waitSeconds' => NULL,
-      'withTrashed' => false,
-    ),
-    'generated::4beNUfScNYPYgLDF' => 
+    'generated::bQayM9qKbncNCpl5' => 
     array (
       'methods' => 
       array (
@@ -772,7 +715,7 @@ app('router')->setCompiledRoutes(
         'where' => 
         array (
         ),
-        'as' => 'generated::4beNUfScNYPYgLDF',
+        'as' => 'generated::bQayM9qKbncNCpl5',
       ),
       'fallback' => false,
       'defaults' => 
@@ -788,7 +731,7 @@ app('router')->setCompiledRoutes(
       'waitSeconds' => NULL,
       'withTrashed' => false,
     ),
-    'generated::YZTHPeCvk8xt5quB' => 
+    'generated::rhEhvYUNrVAWaIka' => 
     array (
       'methods' => 
       array (
@@ -809,7 +752,7 @@ app('router')->setCompiledRoutes(
         'where' => 
         array (
         ),
-        'as' => 'generated::YZTHPeCvk8xt5quB',
+        'as' => 'generated::rhEhvYUNrVAWaIka',
       ),
       'fallback' => false,
       'defaults' => 
@@ -877,6 +820,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver usuarios',
         ),
         'uses' => 'App\\Livewire\\Usuarios\\Usuarios@__invoke',
         'controller' => 'App\\Livewire\\Usuarios\\Usuarios',
@@ -915,6 +859,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver categorias',
         ),
         'uses' => 'App\\Livewire\\Categoria\\Categorias@__invoke',
         'controller' => 'App\\Livewire\\Categoria\\Categorias',
@@ -953,6 +898,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver productos',
         ),
         'uses' => 'App\\Livewire\\Productos\\Productos@__invoke',
         'controller' => 'App\\Livewire\\Productos\\Productos',
@@ -991,6 +937,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver proveedores',
         ),
         'uses' => 'App\\Livewire\\Proveedores\\Proveedores@__invoke',
         'controller' => 'App\\Livewire\\Proveedores\\Proveedores',
@@ -1029,6 +976,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver cuentas',
         ),
         'uses' => 'App\\Livewire\\Cuentas\\Cuentas@__invoke',
         'controller' => 'App\\Livewire\\Cuentas\\Cuentas',
@@ -1067,6 +1015,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver cierre-caja',
         ),
         'uses' => 'App\\Livewire\\CierreCaja\\CierreCaja@__invoke',
         'controller' => 'App\\Livewire\\CierreCaja\\CierreCaja',
@@ -1105,6 +1054,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver compras',
         ),
         'uses' => 'App\\Livewire\\Compras\\Compras@__invoke',
         'controller' => 'App\\Livewire\\Compras\\Compras',
@@ -1143,6 +1093,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:crear compras',
         ),
         'uses' => 'App\\Livewire\\Compras\\FormCompra@__invoke',
         'controller' => 'App\\Livewire\\Compras\\FormCompra',
@@ -1181,6 +1132,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver ventas',
         ),
         'uses' => 'App\\Livewire\\Ventas\\Ventas@__invoke',
         'controller' => 'App\\Livewire\\Ventas\\Ventas',
@@ -1219,6 +1171,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:crear ventas',
         ),
         'uses' => 'App\\Livewire\\Ventas\\FormVentas@__invoke',
         'controller' => 'App\\Livewire\\Ventas\\FormVentas',
@@ -1257,6 +1210,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver ajuste-inventario',
         ),
         'uses' => 'App\\Livewire\\AjusteInventario\\AjusteInventario@__invoke',
         'controller' => 'App\\Livewire\\AjusteInventario\\AjusteInventario',
@@ -1295,6 +1249,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:crear ajuste-inventario',
         ),
         'uses' => 'App\\Livewire\\AjusteInventario\\FormAjusteInventario@__invoke',
         'controller' => 'App\\Livewire\\AjusteInventario\\FormAjusteInventario',
@@ -1333,6 +1288,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver movimientos',
         ),
         'uses' => 'App\\Livewire\\Movimientos\\Movimientos@__invoke',
         'controller' => 'App\\Livewire\\Movimientos\\Movimientos',
@@ -1371,6 +1327,7 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
           1 => 'App\\Http\\Middleware\\Auth',
+          2 => 'permission:ver roles',
         ),
         'uses' => 'App\\Livewire\\Roles\\Roles@__invoke',
         'controller' => 'App\\Livewire\\Roles\\Roles',
@@ -1408,13 +1365,13 @@ app('router')->setCompiledRoutes(
         array (
           0 => 'web',
         ),
-        'uses' => 'O:55:"Laravel\\SerializableClosure\\UnsignedSerializableClosure":1:{s:12:"serializable";O:46:"Laravel\\SerializableClosure\\Serializers\\Native":5:{s:3:"use";a:0:{}s:8:"function";s:207:"function (){
+        'uses' => 'O:55:"Laravel\\SerializableClosure\\UnsignedSerializableClosure":1:{s:12:"serializable";O:46:"Laravel\\SerializableClosure\\Serializers\\Native":5:{s:3:"use";a:0:{}s:8:"function";s:208:"function () {
     \\Illuminate\\Support\\Facades\\Auth::logout();
     \\Illuminate\\Support\\Facades\\Session::flush();
     \\Illuminate\\Support\\Facades\\Artisan::call(\'cache:clear\');
 
     return \\redirect(\'/login\');
-}";s:5:"scope";s:37:"Illuminate\\Routing\\RouteFileRegistrar";s:4:"this";N;s:4:"self";s:32:"00000000000004900000000000000000";}}',
+}";s:5:"scope";s:37:"Illuminate\\Routing\\RouteFileRegistrar";s:4:"this";N;s:4:"self";s:32:"000000000000048f0000000000000000";}}',
         'namespace' => NULL,
         'prefix' => '',
         'where' => 
