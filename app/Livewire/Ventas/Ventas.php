@@ -141,6 +141,68 @@ class Ventas extends Component
         $this->cantidad = 1;
     }
 
+    // public function updateVenta()
+    // {
+    //     DB::transaction(function () {
+    //         $venta = Venta::find($this->ventaId);
+
+    //         if (!$venta) {
+    //             $this->dispatch('showToast', [['type' => 'error', 'message' => 'Venta no encontrada.']]);
+    //             return;
+    //         }
+
+    //         // Actualiza la información de la venta
+    //         $venta->descripcion = $this->descripcion;
+    //         $venta->monto_total = $this->montoTotal;
+    //         $venta->cuenta_id = $this->cuenta_id;
+    //         $venta->venta_mayorista = $this->venta_mayorista; // Guardar si es una venta mayorista
+    //         $venta->save();
+
+    //         // Actualiza los productos en la venta
+    //         foreach ($this->productos as $producto) {
+    //             $detVenta = DetVenta::where('venta_id', $this->ventaId)
+    //                 ->where('producto_id', $producto['producto_id'])
+    //                 ->first();
+
+    //             if ($detVenta) {
+    //                 $detVenta->cant = $producto['cantidad'];
+    //                 $detVenta->precio_venta = $producto['precio'];
+    //                 $detVenta->save();
+    //             } else {
+    //                 DetVenta::create([
+    //                     'venta_id' => $this->ventaId,
+    //                     'producto_id' => $producto['producto_id'],
+    //                     'cant' => $producto['cantidad'],
+    //                     'precio_venta' => $producto['precio'],
+    //                 ]);
+    //             }
+    //         }
+
+    //         // Elimina los productos que ya no están en la lista
+    //         $productosIds = collect($this->productos)->pluck('producto_id');
+    //         DetVenta::where('venta_id', $this->ventaId)->whereNotIn('producto_id', $productosIds)->delete();
+
+    //         // Actualiza el movimiento de la cuenta
+    //         $movimiento = Movimiento::where('venta_id', $this->ventaId)->first();
+    //         if ($movimiento) {
+    //             $movimiento->monto = $this->montoTotal;
+    //             $movimiento->save();
+    //         }
+
+    //         // Actualiza el saldo de la cuenta asociada
+    //         $cuenta = Cuenta::find($this->cuenta_id);
+    //         if ($cuenta) {
+    //             $cuenta->saldo += $this->montoTotal;
+    //             $cuenta->save();
+    //         }
+
+    //         $this->productos = [];
+    //         $this->reset('producto_id', 'cantidad');
+    //         $this->getTabla();
+    //     });
+
+    //     $this->dispatch('closeModal');
+    // }
     public function updateVenta()
     {
         DB::transaction(function () {
@@ -153,10 +215,12 @@ class Ventas extends Component
 
             // Actualiza la información de la venta
             $venta->descripcion = $this->descripcion;
-            $venta->monto_total = $this->montoTotal;
             $venta->cuenta_id = $this->cuenta_id;
             $venta->venta_mayorista = $this->venta_mayorista; // Guardar si es una venta mayorista
             $venta->save();
+
+            // Inicializa el monto total
+            $nuevoMontoTotal = 0;
 
             // Actualiza los productos en la venta
             foreach ($this->productos as $producto) {
@@ -165,7 +229,33 @@ class Ventas extends Component
                     ->first();
 
                 if ($detVenta) {
-                    $detVenta->cant = $producto['cantidad'];
+                    // Calcular el cambio en cantidad
+                    $cantidadAnterior = $detVenta->cant;
+                    $nuevaCantidad = $producto['cantidad'];
+
+                    // Actualizar el stock de DetCompra
+                    if ($cantidadAnterior !== $nuevaCantidad) {
+                        // Si hay un cambio, ajustar el stock
+                        if ($nuevaCantidad > $cantidadAnterior) {
+                            // Aumentar stock
+                            $diferencia = $nuevaCantidad - $cantidadAnterior;
+                            $detCompra = DetCompra::find($detVenta->det_compra_id);
+                            if ($detCompra) {
+                                $detCompra->stock -= $diferencia; // Restar del stock
+                                $detCompra->save();
+                            }
+                        } else {
+                            // Disminuir stock
+                            $diferencia = $cantidadAnterior - $nuevaCantidad;
+                            $detCompra = DetCompra::find($detVenta->det_compra_id);
+                            if ($detCompra) {
+                                $detCompra->stock += $diferencia; // Aumentar al stock
+                                $detCompra->save();
+                            }
+                        }
+                    }
+
+                    $detVenta->cant = $nuevaCantidad;
                     $detVenta->precio_venta = $producto['precio'];
                     $detVenta->save();
                 } else {
@@ -176,6 +266,9 @@ class Ventas extends Component
                         'precio_venta' => $producto['precio'],
                     ]);
                 }
+
+                // Recalcular el monto total
+                $nuevoMontoTotal += $producto['precio'] * $producto['cantidad'];
             }
 
             // Elimina los productos que ya no están en la lista
@@ -185,16 +278,13 @@ class Ventas extends Component
             // Actualiza el movimiento de la cuenta
             $movimiento = Movimiento::where('venta_id', $this->ventaId)->first();
             if ($movimiento) {
-                $movimiento->monto = $this->montoTotal;
+                $movimiento->monto = $nuevoMontoTotal;
                 $movimiento->save();
             }
 
-            // Actualiza el saldo de la cuenta asociada
-            $cuenta = Cuenta::find($this->cuenta_id);
-            if ($cuenta) {
-                $cuenta->saldo += $this->montoTotal;
-                $cuenta->save();
-            }
+            // Actualiza el monto total de la venta
+            $venta->monto_total = $nuevoMontoTotal;
+            $venta->save();
 
             $this->productos = [];
             $this->reset('producto_id', 'cantidad');

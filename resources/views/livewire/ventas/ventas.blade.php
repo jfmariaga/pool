@@ -1,88 +1,24 @@
 <div x-data="dataalpine">
 
     <style>
-        .invoice-modal {
-            font-family: Arial, sans-serif;
-            background-color: #fff;
-            color: #000;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ddd;
+        .texto h3,
+        .texto h4,
+        .texto h5 {
+            margin: 0; /* Elimina el margen superior e inferior */
+            padding: 5px 0; /* Ajusta el padding si es necesario */
         }
 
-        .invoice-modal h3,
-        .invoice-modal h4 {
-            margin: 0;
-            padding: 5px 0;
-            text-align: center;
-        }
-
-        .invoice-modal p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        .invoice-modal table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .invoice-modal table th,
-        .invoice-modal table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-
-        .invoice-modal .text-right {
-            text-align: right;
-            padding-right: 10px;
-        }
-
-        .invoice-modal .text-center {
-            text-align: center;
-        }
-
-        .invoice-modal hr {
-            border: 1px solid #ddd;
-            margin: 10px 0;
-        }
-
-        .invoice-modal .footer {
-            padding: 20px;
-            text-align: center;
-        }
-
-        .text-center {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            width: 100%;
-        }
-
-        .text-center h3,
-        .text-center h4,
-        .text-center p {
-            margin: 5px 0;
+        .texto p {
+            margin: 2px 0; /* Ajusta el margen para los párrafos */
+            font-size: 14px; /* Ajusta el tamaño de fuente si es necesario */
         }
     </style>
-
     <div class="app-content content">
         <div class="content-wrapper">
             <div class="content-header row">
                 <div class="content-header-left col-md-6 col-12 mb-2 breadcrumb-new">
                     <h3 class="content-header-title mb-0 d-inline-block br_none">Ventas</h3>
                 </div>
-                {{-- <div class="content-header-right col-md-6 col-12">
-                    <div class="btn-group float-md-right">
-                        <a href="{{ route('form-ventas') }}" id="btn_form_personal" class="btn btn-dark">
-                            <i class="la la-plus"></i> Nueva
-                        </a>
-                    </div>
-                </div> --}}
             </div>
 
             <div class="content-body">
@@ -109,27 +45,29 @@
     </div>
 
     <x-modal id="comprobante" class="invoice-modal">
-        <x-slot name="title">
-            <div class="text-center">
-                <h3>BLACK POOL</h3>
-                <p>NIT: 123456789</p>
-                <p>Dirección: Chinácota, Norte de Santander</p>
-                <p>Teléfono: +57 123 456 789</p>
-                <h4>FACTURA DE VENTA - RÉGIMEN COMÚN</h4>
-            </div>
+        <x-slot name="header">
+            <x-slot name="title">
+                <p>Comprobante de venta</p>
+            </x-slot>
         </x-slot>
+        <div class="text-center texto">
+            <h3>BLACK POOL</h3>
+            <p>NIT: 123456789</p>
+            <p>Dirección: Chinácota, Norte de Santander</p>
+            <p>Teléfono: +57 123 456 789</p>
+            <h5>Tipo de Venta: <span x-text="comprobante.venta_mayorista ? 'Mayorista' : 'Detal'"></span></h5>
+        </div>
 
         <div class="row scroll_y p-4">
             <template x-if="(typeof comprobante !== 'undefined')">
                 <div class="col-md-12 p-2">
                     <div class="d-flex justify-content-between">
                         <div><strong>Fecha:</strong> <span x-text="comprobante.fecha"></span></div>
-                        <div><strong>Factura No.:</strong> <span x-text="comprobante.id"></span></div>
+                        <div><strong>Venta No.:</strong> <span x-text="comprobante.id"></span></div>
                     </div>
                     <div class="d-flex justify-content-between mt-2">
                         <div><strong>Cliente:</strong> <span x-text="comprobante.descripcion"></span></div>
-                        <div><strong>Vendedor:</strong> <span
-                                x-text="`${comprobante.usuario.name} ${comprobante.usuario.last_name}`"></span></div>
+                        <div><strong>Vendedor:</strong> <span x-text="`${comprobante.usuario.name} ${comprobante.usuario.last_name}`"></span></div>
                     </div>
                     <hr>
 
@@ -147,30 +85,18 @@
                             <template x-for="(item, key) in comprobante.det_ventas" :key="key">
                                 <tr>
                                     <td x-text="item.producto.nombre"></td>
-                                    <td>
-                                        <span x-if="comprobante.venta_mayorista"
-                                            x-text="__numberFormat(item.producto.precio_mayorista)"></span>
-                                        <span x-if="!comprobante.venta_mayorista"
-                                            x-text="__numberFormat(item.precio_venta)"></span>
-                                    </td>
+                                    <td x-text="comprobante.venta_mayorista ? __numberFormat(item.producto.precio_mayorista) : __numberFormat(item.precio_venta)"></td>
                                     <td x-text="item.cant"></td>
-                                    <td>
-                                        <span x-if="comprobante.venta_mayorista"
-                                            x-text="__numberFormat(item.producto.precio_mayorista * item.cant)"></span>
-                                        <span x-if="!comprobante.venta_mayorista"
-                                            x-text="__numberFormat(item.precio_venta * item.cant)"></span>
-                                    </td>
+                                    <td x-text="comprobante.venta_mayorista ? __numberFormat(item.producto.precio_mayorista * item.cant) : __numberFormat(item.precio_venta * item.cant)"></td>
                                 </tr>
                             </template>
                         </tbody>
                     </table>
 
                     <div class="text-right">
-                        <p><strong>Subtotal:</strong> <span
-                                x-text="`${__numberFormat(comprobante.monto_total)}`"></span></p>
+                        <p><strong>Subtotal:</strong> <span x-text="`${__numberFormat(comprobante.monto_total)}`"></span></p>
                         <p><strong>IVA 19%:</strong> <span x-text="`${__numberFormat(comprobante.iva)}`"></span></p>
-                        <p><strong>Total:</strong> <span x-text="`${__numberFormat(comprobante.monto_total)}`"></span>
-                        </p>
+                        <p><strong>Total:</strong> <span x-text="`${__numberFormat(comprobante.monto_total)}`"></span></p>
                         <p><strong>Tipo de Pago:</strong> <span x-text="comprobante.cuenta.nombre"></span></p>
                     </div>
                 </div>
@@ -183,6 +109,7 @@
             </div>
         </x-slot>
     </x-modal>
+
 
     <x-modal id="editVentaModal">
         <x-slot name="title">
