@@ -28,7 +28,8 @@ class CierreCaja extends Component
     public $total_inicio    = 0;
     public $total_cierre    = 0;
 
-    public function mount(){
+    public function mount()
+    {
         $this->getUltCierre();
     }
 
@@ -46,7 +47,8 @@ class CierreCaja extends Component
     }
 
     // obtiene la info del ultimo cierre y prepara todo para un nuevo cierre
-    public function getUltCierre(){
+    public function getUltCierre()
+    {
 
         $ult_cierre = ModelCierreCaja::with('detalles')->orderBy('id', 'desc')->first();
 
@@ -56,7 +58,7 @@ class CierreCaja extends Component
         $ult_movimiento = 0;
 
         // si ya existe un cierre, tomamos como base los últimos IDs procesados
-        if( isset( $ult_cierre->id ) ){
+        if (isset($ult_cierre->id)) {
 
             $ult_cierre = $ult_cierre->toArray();
 
@@ -73,44 +75,43 @@ class CierreCaja extends Component
 
         // organizamos el cierre por cada cuenta
         $cuentas = Cuenta::select('id', 'nombre')->where('status', 1)->get()->toArray();
-        if( $cuentas ){
+        if ($cuentas) {
 
             // organizamos la matriz de las cuentas
             foreach ($cuentas as $cuenta) {
-                $this->det_cuentas[ $cuenta['id'] ]['nombre']  = $cuenta['nombre']; // con lo que empezó
-                $this->det_cuentas[ $cuenta['id'] ]['inicio']  = 0; // con lo que empezó
-                $this->det_cuentas[ $cuenta['id'] ]['ingreso'] = 0; // lo que le ingresó
-                $this->det_cuentas[ $cuenta['id'] ]['egreso']  = 0; // lo que salió
-                $this->det_cuentas[ $cuenta['id'] ]['cierre']  = 0; // con lo que terminó
+                $this->det_cuentas[$cuenta['id']]['nombre']  = $cuenta['nombre']; // con lo que empezó
+                $this->det_cuentas[$cuenta['id']]['inicio']  = 0; // con lo que empezó
+                $this->det_cuentas[$cuenta['id']]['ingreso'] = 0; // lo que le ingresó
+                $this->det_cuentas[$cuenta['id']]['egreso']  = 0; // lo que salió
+                $this->det_cuentas[$cuenta['id']]['cierre']  = 0; // con lo que terminó
             }
 
             // el inicio de la cuenta es el total cierre del ultimo cierre de esa cuenta
-            if( isset( $ult_cierre['detalles'] ) && $ult_cierre['detalles'] ){
-                foreach( $ult_cierre['detalles'] as $det_cierre ){
-                    $this->det_cuentas[ $det_cierre['cuenta_id'] ]['inicio'] = $det_cierre['total_cierre'];
+            if (isset($ult_cierre['detalles']) && $ult_cierre['detalles']) {
+                foreach ($ult_cierre['detalles'] as $det_cierre) {
+                    $this->det_cuentas[$det_cierre['cuenta_id']]['inicio'] = $det_cierre['total_cierre'];
                 }
             }
 
             // organizamos los movimientos por cuentas
-            foreach( $movimientos as $movimiento ){
-                if( $movimiento->venta_id > 0 ){ // suma
-                    $this->det_cuentas[ $movimiento->cuenta_id ]['ingreso'] += $movimiento->monto;
-                }else if( $movimiento->compra > 0 ){ // resta
-                    $this->det_cuentas[ $movimiento->cuenta_id ]['egreso']  += $movimiento->monto;
-                }else{
-                    if( $movimiento->tipo == 'ingreso' ){ // suma
-                        $this->det_cuentas[ $movimiento->cuenta_id ]['ingreso'] += $movimiento->monto;
-                    }else{ // resta
-                        $this->det_cuentas[ $movimiento->cuenta_id ]['egreso']  += $movimiento->monto;
+            foreach ($movimientos as $movimiento) {
+                if ($movimiento->venta_id > 0) { // suma
+                    $this->det_cuentas[$movimiento->cuenta_id]['ingreso'] += $movimiento->monto;
+                } else if ($movimiento->compra > 0) { // resta
+                    $this->det_cuentas[$movimiento->cuenta_id]['egreso']  += $movimiento->monto;
+                } else {
+                    if ($movimiento->tipo == 'ingreso') { // suma
+                        $this->det_cuentas[$movimiento->cuenta_id]['ingreso'] += $movimiento->monto;
+                    } else { // resta
+                        $this->det_cuentas[$movimiento->cuenta_id]['egreso']  += $movimiento->monto;
                     }
                 }
             }
 
             // calculamos el cierre por cuenta
             foreach ($this->det_cuentas as $key => $cuenta) {
-                $this->det_cuentas[ $key ]['cierre']  = $cuenta['inicio'] + ( $cuenta['ingreso'] - $cuenta['egreso'] );
+                $this->det_cuentas[$key]['cierre']  = $cuenta['inicio'] + ($cuenta['ingreso'] - $cuenta['egreso']);
             }
-
         }
 
         // organizamos los totales
@@ -120,11 +121,11 @@ class CierreCaja extends Component
         $this->total_ingresos   = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'ingreso')->sum('monto');
 
         $this->total_cierre     = $this->total_inicio + $this->total_ventas - $this->total_compras - $this->total_egresos + $this->total_ingresos;
-
     }
 
     // ejecuta el cierre de caja hasta ese momento
-    public function cierreCaja(){
+    public function cierreCaja()
+    {
 
         $this->skipRender(); // Evita que el componente se renderice nuevamente
 
@@ -137,9 +138,9 @@ class CierreCaja extends Component
         $cierre = ModelCierreCaja::create([
             'user_id'        => Auth::id(),
             'fecha'          => date('Y-m-d H:i'),
-            'ult_compra'     => $ult_compra ? $ult_compra->id: 0,
-            'ult_venta'      => $ult_venta ? $ult_venta->id: 0 ,
-            'ult_movimiento' => $ult_movimiento ? $ult_movimiento->id: 0,
+            'ult_compra'     => $ult_compra ? $ult_compra->id : 0,
+            'ult_venta'      => $ult_venta ? $ult_venta->id : 0,
+            'ult_movimiento' => $ult_movimiento ? $ult_movimiento->id : 0,
             'total_inicio'   => $this->total_inicio,
             'total_cierre'   => $this->total_cierre,
             'total_ventas'   => $this->total_ventas,
@@ -148,7 +149,7 @@ class CierreCaja extends Component
             'total_ingresos' => $this->total_ingresos,
         ]);
 
-        if( isset( $cierre->id ) ){
+        if (isset($cierre->id)) {
 
             // guardamos los detalles de cierre por cada cuenta
             foreach ($this->det_cuentas as $cuenta_id => $det) {
@@ -157,12 +158,12 @@ class CierreCaja extends Component
                     'cuenta_id'     => $cuenta_id,
                     'total_inicio'  => $det['inicio'],
                     'total_cierre'  => $det['cierre'],
-                    'total_ingresos'=> $det['ingreso'],
+                    'total_ingresos' => $det['ingreso'],
                     'total_egresos' => $det['egreso'],
                 ]);
             }
 
-            $superAdmin = User::whereHas('roles', function($query) {
+            $superAdmin = User::whereHas('roles', function ($query) {
                 $query->where('name', 'SuperAdmin');
             })->first();
 
@@ -173,9 +174,11 @@ class CierreCaja extends Component
             $this->getUltCierre();
 
             // bloqueamos el edit y delete, de ventas, compras y movimientos, hechos hasta este momento
-            Venta::where('id', '<=', $ult_venta->id)->update( [ 'block' => 1 ] );
-            Compra::where('id', '<=', $ult_compra->id)->update( [ 'block' => 1 ] );
-            Movimiento::where('id', '<=', $ult_movimiento->id)->update( [ 'block' => 1 ] );
+            if ($ult_venta) {
+                Venta::where('id', '<=', $ult_venta->id)->update(['block' => 1]);
+            }
+            Compra::where('id', '<=', $ult_compra->id)->update(['block' => 1]);
+            Movimiento::where('id', '<=', $ult_movimiento->id)->update(['block' => 1]);
 
             // retornamos el nuevo cierre para agregarlo a la tabla
             return ModelCierreCaja::where('id', $cierre->id)->with('usuario', 'detalles.cuenta')->first()->toArray();
