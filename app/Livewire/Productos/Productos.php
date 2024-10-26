@@ -26,7 +26,7 @@ class Productos extends Component
 
     public function mount()
     {
-        $this->categorias = Categoria::all();
+        $this->categorias = Categoria::where('status', 1)->get();
     }
 
     public function render()
