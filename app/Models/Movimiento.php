@@ -21,6 +21,11 @@ class Movimiento extends Model
         return $this->belongsTo(Cuenta::class);
     }
 
+    public function venta()
+    {
+        return $this->belongsTo(Venta::class);
+    }
+
     public function usuario(){
         return $this->belongsTo(User::class);
     }
