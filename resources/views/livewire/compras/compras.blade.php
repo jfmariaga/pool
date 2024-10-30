@@ -196,7 +196,8 @@
                 },
 
                 async addUser(i) { // agregamos cada item a la tabla
-
+                    const adjuntoRuta = i.adjuntos && i.adjuntos.length > 0 ? i.adjuntos[0].ruta.replace(
+                        'public/', 'storage/') : null;
                     tr = `<tr id="tr_${i.id}">`
 
                     tr += `
@@ -206,21 +207,29 @@
                             <td>${i.cuenta.nombre}</td>
                             <td>${__numberFormat( i.total )}</td>
                             <td>
-                            <div class="d-flex">
-                                <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i></x-buttonsm>
-                                ${
-                                    i.block ? `` :
-                                    `
-                                            @can('editar compras') <!-- Verificación de permiso -->
-                                                <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i></x-buttonsm>
-                                            @endcan
-                                            @can('eliminar compras') <!-- Verificación de permiso -->
-                                                <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
-                                            @endcan
-                                            `
-                                }
-                            </div>
-        </td>`;
+                                <div class="d-flex">
+                                    <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i></x-buttonsm>
+                                    ${
+                                        i.block ? `` :
+                                        `
+                                                                        @can('editar compras') <!-- Verificación de permiso -->
+                                                                            <x-buttonsm href="form-compra/${i.id}"><i class="la la-edit"></i></x-buttonsm>
+                                                                        @endcan
+                                                                        @can('eliminar compras') <!-- Verificación de permiso -->
+                                                                            <x-buttonsm click="confirmDelete('${i.id}', '${i.puede_eliminar}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                                                        @endcan
+                                                                        `
+                                    }
+                                    ${
+                                        adjuntoRuta ? `
+                                                <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
+                                                    <i class="la la-paperclip"></i>
+                                                </a>
+                                                ` : ``
+                                    }
+
+                                </div>
+                            </td>`;
 
                     tr += `</tr>`
                     $('#body_table').prepend(tr)

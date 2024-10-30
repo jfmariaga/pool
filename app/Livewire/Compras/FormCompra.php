@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Compras;
 
+use App\Models\Adjunto;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,14 +15,18 @@ use App\Models\Compra;
 use App\Models\DetCompra;
 use App\Models\Movimiento;
 use App\Traits\General;
+use Illuminate\Support\Facades\Storage;
+use Livewire\WithFileUploads;
+use Illuminate\Support\Str;
 
 class FormCompra extends Component
 {
-    use General;
+    use General, WithFileUploads;
 
     public $compra_id;
     public $proveedores = [], $cuentas = [], $categorias = [];
     public $proveedor_id, $cuenta_id;
+    public $adjunto, $url;
 
     public $detalles    = []; // lista con los prod que se van agregando
     public $id_dets_old = []; // para saber al editar que items fueron eliminados
@@ -32,11 +37,13 @@ class FormCompra extends Component
 
         // si viene es porque estamos editando
         if ($this->compra_id) {
-            $compra = Compra::where('id', $this->compra_id)->with('detalles.producto')->first()->toArray();
+            $compra = Compra::where('id', $this->compra_id)->with(['detalles.producto', 'adjuntos'])->first()->toArray();
             // dd( $compra );
             if (isset($compra['id']) && $compra['id']) {
                 $this->proveedor_id = $compra['proveedor_id'];
                 $this->cuenta_id    = $compra['cuenta_id'];
+                $this->url      = $compra['adjuntos'][0]['ruta'];
+                // dd($this->url);
 
                 foreach ($compra['detalles'] as $det) {
 
@@ -49,7 +56,7 @@ class FormCompra extends Component
                         'imagenes'          => $det['producto']['imagenes'],
                         'cantidad'          => $det['stock_compra'],
                         'vendidos'          => $det['stock_compra'] - $det['stock'],
-                        'precio_compra'     => '$ ' . number_format($det['precio_compra'],2),
+                        'precio_compra'     => '$ ' . number_format($det['precio_compra'], 2),
                         'subtotal'          => $det['stock_compra'] * $det['precio_compra'],
                     ];
                 }
@@ -78,6 +85,7 @@ class FormCompra extends Component
         $this->validate([
             'proveedor_id'  => 'required',
             'cuenta_id'     => 'required',
+            'adjunto'       => 'nullable|file|max:2048'
         ]);
 
         $cuenta = Cuenta::find($this->cuenta_id); //Cargamos la cuenta de primero por si vamos a editar
@@ -168,5 +176,59 @@ class FormCompra extends Component
             );
             $this->dispatch('formOK');
         }
+
+        if ($this->adjunto) {
+            $this->adjuntar($compra->id);
+        }
+    }
+
+    public function adjuntar($compra_id)
+    {
+        $compra = Compra::find($compra_id);
+
+        if ($this->adjunto && is_object($this->adjunto)) {
+            // Eliminar adjuntos previos si existen
+            if ($compra->adjuntos->isNotEmpty()) {
+                foreach ($compra->adjuntos as $adjunto) {
+                    if (Storage::exists($adjunto->ruta)) {
+                        Storage::delete($adjunto->ruta);
+                    }
+                    $adjunto->delete();
+                }
+            }
+
+            // Guardar el nuevo archivo adjunto
+            $nombre_original = $this->adjunto->getClientOriginalName();
+            $nombre_sin_extension = pathinfo($nombre_original, PATHINFO_FILENAME);
+            $extension = $this->adjunto->getClientOriginalExtension();
+            $nombre_db = Str::slug($nombre_sin_extension);
+            $nombre_a_guardar = $nombre_db . '.' . $extension;
+
+            $ruta = $this->adjunto->storeAs('public/adjuntos', $nombre_a_guardar);
+
+            Adjunto::create([
+                'ruta' => $ruta,
+                'compra_id' => $compra_id,
+            ]);
+
+            // Limpiar la propiedad del adjunto después de guardarlo
+            $this->reset('adjunto');
+        }
+    }
+
+    public function getIcon($extension)
+    {
+        $icons = [
+            'pdf' => asset('icons/pdf-icon.png'),
+            'doc' => asset('icons/word-icon.png'),
+            'docx' => asset('icons/word-icon.png'),
+            'zip' => asset('icons/zip-icon.png'),
+            'rar' => asset('icons/zip-icon.png'),
+            'xls' => asset('icons/excel-icon.png'),
+            'xlsx' => asset('icons/excel-icon.png'),
+        ];
+
+        return $icons[$extension] ?? asset('icons/default-icon.png');
+        $this->resetValidation();
     }
 }

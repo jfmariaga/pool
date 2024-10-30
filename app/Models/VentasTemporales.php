@@ -15,4 +15,8 @@ class VentasTemporales extends Model
      {
          return $this->hasMany(ProductoVentaTemporal::class,'venta_temporal_id');
      }
+
+     public function cuentasTemporales(){
+        return $this->belongsTo(CuentaTemporal::class);
+     }
 }

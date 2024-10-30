@@ -214,6 +214,9 @@
                     let editButton = !movimiento.block ? isEditable ?
                         `<x-buttonsm click="openForm('${movimiento.id}')"><i class="la la-edit"></i></x-buttonsm>` :
                         `<x-buttonsm click="MovimientoAuto()"><i class="la la-edit"></i></x-buttonsm>` : ``;
+                    const adjuntoRuta = movimiento.adjuntos && movimiento.adjuntos.length > 0 ? movimiento
+                        .adjuntos[0].ruta.replace(
+                            'public/', 'storage/') : null;
                     tr += `
                         <td>${ __formatDate( movimiento.fecha ) }</td>
                         <td>${movimiento.cuenta ? movimiento.cuenta.nombre : 'Sin cuenta'}</td>
@@ -234,6 +237,13 @@
                                                     </x-buttonsm>
                                 </template>
                                 @endcan
+                                ${
+                                        adjuntoRuta ? `
+                                                <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
+                                                    <i class="la la-paperclip"></i>
+                                                </a>
+                                                ` : ``
+                                    }
 
                             </div>
                         </td>`;

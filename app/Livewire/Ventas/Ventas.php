@@ -41,12 +41,54 @@ class Ventas extends Component
         return view('livewire.ventas.ventas');
     }
 
+    // public function getTabla()
+    // {
+    //     $this->skipRender();
+    //     $ventas = Venta::with('detVentas.producto', 'usuario', 'cuenta')->get()->toArray();
+    //     return $ventas;
+    // }
     public function getTabla()
     {
         $this->skipRender();
-        $ventas = Venta::with('detVentas.producto', 'usuario', 'cuenta')->get()->toArray();
+
+        // Cargar las ventas y verificar tanto la relación `cuenta_id` como la tabla pivote `venta_cuenta`
+        $ventas = Venta::with([
+            'detVentas.producto',
+            'usuario',
+            'cuenta', // Cargar cuenta directa si existe
+            'cuentas' // Cargar múltiples cuentas de la tabla pivote
+        ])->get()->map(function ($venta) {
+            // Consolidar los métodos de pago en un solo campo
+            $metodosPago = collect();
+
+            // Agregar cuenta directa si existe (casos antiguos)
+            if ($venta->cuenta) {
+                $metodosPago->push([
+                    'nombre' => $venta->cuenta->nombre,
+                    'monto' => $venta->monto_total,
+                ]);
+            }
+
+            // Agregar las cuentas de la tabla pivote si existen
+            if (!is_null($venta->cuentas)) { // Verifica que la relación esté cargada
+                foreach ($venta->cuentas as $cuenta) {
+                    $metodosPago->push([
+                        'nombre' => $cuenta->nombre,
+                        'monto' => $cuenta->pivot->monto, // Monto desde la relación pivote
+                    ]);
+                }
+            }
+
+            // Añadir el campo `metodosPago` al arreglo de datos de la venta
+            $venta->metodosPago = $metodosPago;
+
+            return $venta;
+        })->toArray();
+
         return $ventas;
     }
+
+
 
     public function agregarProducto()
     {

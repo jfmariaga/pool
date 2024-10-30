@@ -28,14 +28,6 @@
                                     <button wire:click="abrirNuevaVenta" class="btn btn-outline-dark ml-2"
                                         style="height:40px;">Abrir Venta</button>
                                 </div>
-                                {{-- <div class="col-md-4">
-                                    <x-select model="$wire.producto_id" id="producto_id" label="Producto" required="true">
-                                        <option value="0">Seleccione un producto</option>
-                                        @foreach ($productosall as $producto)
-                                            <option value="{{ $producto->id }}">{{ $producto->nombre }}</option>
-                                        @endforeach
-                                    </x-select>
-                                </div> --}}
                             </div>
                             <hr>
                         </div>
@@ -44,23 +36,53 @@
                                 <div class="box-shadow-2">
                                     <div class="card mb-0">
                                         <div class="card-body">
+                                            {{-- Título y descripción de cada venta --}}
+                                            <h5>{{ $venta['descripcion'] }}</h5>
 
-                                            <h5 class="card-title">{{ $venta['descripcion'] }}</h5>
-                                            <br>
-                                            <div class="">
-                                                <label for="cuenta">Metodo de pago</label>
-                                                <select wire:model="ventas.{{ $index }}.cuenta_id"
-                                                    class="form-control mb-2">
-                                                    <option value="">Metodo de pago</option>
-                                                    @foreach ($cuentas as $cuenta)
-                                                        <option value="{{ $cuenta->id }}">{{ $cuenta->nombre }}
-                                                        </option>
+                                            {{-- Selección de cuenta y monto para cada venta --}}
+                                            @if (!empty($venta['productos']))
+                                                <div>
+                                                    <label for="cuenta">Seleccionar Cuenta</label>
+                                                    <select wire:model="cuentasSeleccionadasIds.{{ $index }}"
+                                                        class="form-control">
+                                                        <option value="">Seleccione una cuenta</option>
+                                                        @foreach ($cuentas as $cuenta)
+                                                            <option value="{{ $cuenta->id }}">{{ $cuenta->nombre }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+
+                                                    <label for="montoCuenta">Monto</label>
+                                                    <input type="number" wire:model="montosCuentas.{{ $index }}"
+                                                        step="0.01" class="form-control"
+                                                        placeholder="Ingrese el monto">
+
+                                                    <button class="btn btn-outline-primary btn_small mt-1"
+                                                        wire:click="agregarCuenta({{ $index }})">
+                                                        Agregar cuenta
+                                                    </button>
+                                                </div>
+
+                                                {{-- Lista de cuentas asignadas a la venta --}}
+                                                <hr>
+                                                <h6>Abonos al saldo:</h6>
+                                                <ul>
+                                                    @foreach ($venta['cuentasSeleccionadas'] as $cuentaIndex => $cuenta)
+                                                        <li>
+                                                            {{ $cuenta['nombre'] }}:
+                                                            ${{ number_format($cuenta['monto'], 2) }}
+                                                            <button
+                                                                wire:click="eliminarCuentaSeleccionada({{ $index }}, {{ $cuentaIndex }})"
+                                                                class="btn btn-outline-danger btn_small">
+                                                                Eliminar
+                                                            </button>
+                                                        </li>
                                                     @endforeach
-                                                </select>
-                                                @error('ventas.' . $index . '.cuenta_id')
-                                                    <span class="text-danger">{{ $message }}</span>
-                                                @enderror
-                                            </div>
+                                                </ul>
+                                            @endif
+
+
+                                            {{-- Configuración de venta mayorista --}}
                                             <hr>
                                             @if (array_sum(array_column($venta['productos'], 'cantidad')))
                                                 <div class="form-check">
@@ -68,17 +90,20 @@
                                                         wire:change="toggleVentaMayorista({{ $index }})"
                                                         class="form-check-input"
                                                         id="venta_mayorista_{{ $index }}"
-                                                        @if ($venta['venta_mayorista']) checked @endif>
+                                                        @if ($venta['venta_mayorista']) checked @endif
+                                                        @if (!empty($venta['cuentasSeleccionadas'])) disabled @endif>
                                                     <label class="form-check-label"
                                                         for="venta_mayorista_{{ $index }}">Venta al por
                                                         mayor</label>
                                                 </div>
                                                 <hr>
                                             @endif
+
+                                            {{-- Detalles de productos y total de cada venta --}}
                                             <div class="">
                                                 <div class="d-flex">
                                                     <div class="w_150px">
-                                                        <b>Cant Productos :</b>
+                                                        <b>Cant Productos:</b>
                                                     </div>
                                                     <div>{{ array_sum(array_column($venta['productos'], 'cantidad')) }}
                                                     </div>
@@ -89,7 +114,16 @@
                                                     </div>
                                                     <span>$ {{ number_format($venta['monto'], 2) }}</span>
                                                 </div>
+                                                <div class="d-flex">
+                                                    <div class="w_150px">
+                                                        <b>Saldo pendiente:</b>
+                                                    </div>
+                                                    <span>$
+                                                        {{ number_format($venta['saldo_pendiente'] ?? $venta['monto'], 2) }}</span>
+                                                </div>
 
+
+                                                {{-- Botón para abrir el carrito de productos --}}
                                                 <center>
                                                     <button class="btn btn-success align-items-center btn_small mt-2"
                                                         wire:click="seleccionarVenta({{ $index }})"
@@ -98,21 +132,21 @@
                                                         compras
                                                     </button>
                                                 </center>
-
                                             </div>
 
+                                            {{-- Botones para cancelar o cerrar la venta --}}
                                             <div class="">
                                                 <hr>
-
                                                 <div class="d-flex justify-content-center">
                                                     <button x-on:click="confirmDelete({{ $index }})"
-                                                        class="btn btn-outline-danger btn_small">Cancelar
-                                                        Venta</button>
-
+                                                        class="btn btn-outline-danger btn_small">
+                                                        Cancelar Venta
+                                                    </button>
                                                     <button
                                                         x-on:click="confirmVenta({{ $index }}, {{ $cuentas }})"
-                                                        class="btn btn-outline-primary me-2 ml-1 btn_small">Cerrar
-                                                        Venta</button>
+                                                        class="btn btn-outline-primary me-2 ml-1 btn_small">
+                                                        Cerrar Venta
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -120,6 +154,7 @@
                                 </div>
                             </div>
                         @endforeach
+
                     </div>
                 </div>
             </div>

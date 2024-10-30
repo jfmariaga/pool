@@ -28,4 +28,8 @@ class Venta extends Model
      public function cuenta(){
         return $this->belongsTo(Cuenta::class);
      }
+
+     public function cuentas(){
+        return $this->belongsTo(Cuenta::class);
+     }
 }

@@ -31,13 +31,13 @@ class Compras extends Component
     }
 
     public function getTabla(){
-        
-        $this->skipRender(); 
 
-        if( $this->desde && $this->hasta ){ 
-            $compras = Compra::where('fecha' , '>=', $this->desde)->where('fecha', '<=', $this->hasta)->with('proveedor', 'usuario', 'cuenta', 'detalles.producto')->get();
+        $this->skipRender();
+
+        if( $this->desde && $this->hasta ){
+            $compras = Compra::where('fecha' , '>=', $this->desde)->where('fecha', '<=', $this->hasta)->with('proveedor', 'usuario', 'cuenta', 'detalles.producto','adjuntos')->get();
         }else{
-            $compras = Compra::with('proveedor', 'usuario', 'cuenta', 'detalles.producto')->get();
+            $compras = Compra::with('proveedor', 'usuario', 'cuenta', 'detalles.producto','adjuntos')->get();
         }
 
         if( $this->proveedor_id ){
