@@ -140,12 +140,12 @@
                                                 <div class="d-flex justify-content-center">
                                                     <button x-on:click="confirmDelete({{ $index }})"
                                                         class="btn btn-outline-danger btn_small">
-                                                        Cancelar Venta
+                                                        Eliminar
                                                     </button>
                                                     <button
                                                         x-on:click="confirmVenta({{ $index }}, {{ $cuentas }})"
                                                         class="btn btn-outline-primary me-2 ml-1 btn_small">
-                                                        Cerrar Venta
+                                                        Guardar
                                                     </button>
                                                 </div>
                                             </div>
