@@ -1,0 +1,6 @@
+
+## para apuntar cositas que no se me olviden ##
+
+sql revision error cierre caja
+
+SELECT m.*, v.monto_total, v.descripcion FROM movimientos m INNER JOIN ventas v ON v.id = m.venta_id WHERE m.id > 224 AND m.venta_id > 0;

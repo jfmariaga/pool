@@ -23,6 +23,7 @@
                     <div x-show="!loading">
                         <x-table id="data_table" extra="d-none">
                             <tr>
+                                <th class="d-none">id</th>
                                 <th>Fecha</th>
                                 <th>Realizado por</th>
                                 <th>Total Inicio</th>
@@ -81,6 +82,7 @@
                     }
 
                     tr += `
+                            <td class="d-none">${ item.id }</td>
                             <td>${ __formatDateTime( item.fecha ) }</td>
                             <td>${item.usuario.name} ${item.usuario.last_name}</td>
                             <td>${__numberFormat( item.total_inicio )}</td>

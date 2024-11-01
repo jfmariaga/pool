@@ -115,7 +115,15 @@ class CierreCaja extends Component
         }
 
         // organizamos los totales
-        $this->total_ventas     = $movimientos->whereNotNull('venta_id')->sum('monto');
+        
+        // calcular ventas con la vuelta rara de devolución saldo
+        $ventas_positivas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'ingreso')->sum('monto');
+        $ventas_negativas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'egreso')->sum('monto');
+        $this->total_ventas     = $ventas_positivas - $ventas_negativas;
+
+        // calcular ventas normales
+        // $this->total_ventas     = $movimientos->whereNotNull('venta_id')->sum('monto');
+
         $this->total_compras    = $movimientos->whereNotNull('compra_id')->sum('monto');
         $this->total_egresos    = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'egreso')->sum('monto');
         $this->total_ingresos   = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'ingreso')->sum('monto');
