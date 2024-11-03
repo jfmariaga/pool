@@ -360,12 +360,16 @@
 
     @script
         <script>
-            document.addEventListener('livewire:init', function() {
-                Livewire.on('showToast', (data) => {
-                    const toastData = data[0];
-                    toastRight(toastData.type, toastData.message);
-                });
-            });
+            // document.addEventListener('livewire:load', function() {
+            //     Livewire.on('showToast', (data) => {
+            //         const toastData = data[0];
+            //         console.log(data[0]);
+
+            //         // toastRight(toastData.type, toastData.message);
+            //     });
+            // });
+
+
 
             Alpine.data('dataalpine', () => ({
                 loading: true,
@@ -384,6 +388,11 @@
                         $('#editVentaModal').modal('hide');
                         this.getTabla();
                         toastRight('success', 'Venta actualizada con éxito.');
+                    });
+
+                    window.addEventListener('showToast', (data) => {
+                        const toastData = data.detail[0];
+                        toastRight(toastData.type, toastData.message);
                     });
 
                     $('#producto_id').change(() => {

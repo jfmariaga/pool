@@ -294,7 +294,7 @@ class FormVentas extends Component
 
         // $this->producto_id = ''; // ya no lo vaciamos ya que el select queda cargado con este prod
         $montoAsignado = array_sum(array_column($this->ventas[$this->currentVenta]['cuentasSeleccionadas'], 'monto')) ?? 0;
-    $this->ventas[$this->currentVenta]['saldo_pendiente'] = $this->ventas[$this->currentVenta]['monto'] - $montoAsignado;
+        $this->ventas[$this->currentVenta]['saldo_pendiente'] = $this->ventas[$this->currentVenta]['monto'] - $montoAsignado;
         $this->cantidad = 1;
     }
 
@@ -395,6 +395,9 @@ class FormVentas extends Component
 
             VentasTemporales::find($venta['venta_temporal_id'])
                 ->update(['monto_total' => $this->ventas[$ventaIndex]['monto']]);
+
+            $montoAsignado = array_sum(array_column($this->ventas[$ventaIndex]['cuentasSeleccionadas'], 'monto'));
+            $this->ventas[$ventaIndex]['saldo_pendiente'] = $this->ventas[$ventaIndex]['monto'] - $montoAsignado;
 
             $this->dispatch('showToast', ['type' => 'success', 'message' => 'Producto eliminado y stock actualizado.']);
         } else {
