@@ -10,6 +10,7 @@ use App\Models\Movimiento;
 use App\Models\Producto;
 use Livewire\Component;
 use App\Models\Venta;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class Ventas extends Component
@@ -28,6 +29,10 @@ class Ventas extends Component
     public $metodosPago = [];
     public $totalEgresos;
 
+    public $listeners = [
+        'metodo-monto-actualizado' => 'actualizarMontoMetodoPago',
+    ];
+
     public function mount()
     {
         // Inicialización de los productos y otras variables
@@ -37,6 +42,12 @@ class Ventas extends Component
         $this->montoTotal = 0;
         $this->cuentas = Cuenta::all();
         $this->metodosPago = [];
+    }
+
+    public function actualizarMontoMetodoPago($index, $monto)
+    {
+        // Actualizar el monto en la posición correcta
+        $this->metodosPago[$index]['monto'] = $monto;
     }
 
     public function render()
@@ -100,6 +111,107 @@ class Ventas extends Component
     }
 
 
+    // public function agregarProducto()
+    // {
+    //     $this->validate([
+    //         'producto_id' => 'required',
+    //     ]);
+
+    //     $producto = Producto::find($this->producto_id);
+
+    //     if (!$producto) {
+    //         $this->dispatch('showToast', ['type' => 'error', 'message' => 'Producto no encontrado.']);
+    //         return;
+    //     }
+
+    //     if (!$producto->stock_infinito) {
+    //         // Si el producto tiene stock limitado
+    //         $stockDisponible = DetCompra::where('producto_id', $producto->id)->sum('stock');
+
+    //         if ($this->cantidad > $stockDisponible) {
+    //             $this->dispatch('showToast', ['type' => 'error', 'message' => "No hay suficiente stock. Disponible: $stockDisponible unidades."]);
+    //             return;
+    //         }
+
+    //         // Obtener las DetCompras más antiguas (ordenadas por fecha de creación)
+    //         $detCompras = DetCompra::where('producto_id', $producto->id)
+    //             ->where('stock', '>', 0)
+    //             ->orderBy('created_at', 'asc')
+    //             ->get();
+
+    //         DB::transaction(function () use ($detCompras, $producto) {
+    //             $cantidadRestante = $this->cantidad;
+    //             $montoNuevoProducto = 0;
+
+    //             foreach ($detCompras as $detCompra) {
+    //                 if ($cantidadRestante <= 0) break;
+
+    //                 $stockDisponible = $detCompra->stock;
+    //                 $cantidadAUtilizar = min($cantidadRestante, $stockDisponible);
+
+    //                 $detCompra->stock -= $cantidadAUtilizar;
+    //                 $detCompra->save();
+
+    //                 // Usar el precio mayorista si está activo
+    //                 $precio = $this->venta_mayorista && $producto->precio_mayorista > 0 ? $producto->precio_mayorista : $producto->precio_base;
+
+    //                 DetVenta::create([
+    //                     'venta_id' => $this->ventaId,
+    //                     'producto_id' => $producto->id,
+    //                     'cant' => $cantidadAUtilizar,
+    //                     'precio_venta' => $precio,
+    //                     'det_compra_id' => $detCompra->id,
+    //                 ]);
+
+    //                 $cantidadRestante -= $cantidadAUtilizar;
+
+    //                 $this->productos[] = [
+    //                     'producto_id' => $producto->id,
+    //                     'nombre' => $producto->nombre,
+    //                     'precio' => $precio,
+    //                     'cantidad' => $cantidadAUtilizar,
+    //                 ];
+
+    //                 $montoNuevoProducto += $precio * $cantidadAUtilizar;
+    //             }
+
+    //             $this->montoTotal += $montoNuevoProducto;
+    //             $this->dispatch('showToast', [
+    //                 'type' => 'success',
+    //                 'message' => 'Se agregó correctamente el producto'
+    //             ]);
+    //         });
+    //     } else {
+    //         // Si el producto tiene stock infinito
+    //         DB::transaction(function () use ($producto) {
+    //             $precio = $this->venta_mayorista && $producto->precio_mayorista > 0 ? $producto->precio_mayorista : $producto->precio_base;
+
+    //             DetVenta::create([
+    //                 'venta_id' => $this->ventaId,
+    //                 'producto_id' => $producto->id,
+    //                 'cant' => $this->cantidad,
+    //                 'precio_venta' => $precio,
+    //                 'det_compra_id' => 0,
+    //             ]);
+
+    //             $this->productos[] = [
+    //                 'producto_id' => $producto->id,
+    //                 'nombre' => $producto->nombre,
+    //                 'precio' => $precio,
+    //                 'cantidad' => $this->cantidad,
+    //             ];
+
+    //             $this->montoTotal += $precio * $this->cantidad;
+    //             $this->dispatch('showToast', [
+    //                 'type' => 'success',
+    //                 'message' => 'Se agregó correctamente el producto'
+    //             ]);
+    //         });
+    //     }
+
+    //     $this->cantidad = 1;
+    // }
+
     public function agregarProducto()
     {
         $this->validate([
@@ -122,170 +234,78 @@ class Ventas extends Component
                 return;
             }
 
-            // Obtener las DetCompras más antiguas (ordenadas por fecha de creación)
             $detCompras = DetCompra::where('producto_id', $producto->id)
                 ->where('stock', '>', 0)
                 ->orderBy('created_at', 'asc')
                 ->get();
 
-            DB::transaction(function () use ($detCompras, $producto) {
-                $cantidadRestante = $this->cantidad;
-                $montoNuevoProducto = 0;
+            $cantidadRestante = $this->cantidad;
+            $montoNuevoProducto = 0;
 
-                foreach ($detCompras as $detCompra) {
-                    if ($cantidadRestante <= 0) break;
+            foreach ($detCompras as $detCompra) {
+                if ($cantidadRestante <= 0) break;
 
-                    $stockDisponible = $detCompra->stock;
-                    $cantidadAUtilizar = min($cantidadRestante, $stockDisponible);
+                $cantidadAUtilizar = min($cantidadRestante, $detCompra->stock);
 
-                    $detCompra->stock -= $cantidadAUtilizar;
-                    $detCompra->save();
+                // Actualiza solo en la memoria de Livewire, no en la base de datos
+                $detCompra->stock -= $cantidadAUtilizar;
 
-                    // Usar el precio mayorista si está activo
-                    $precio = $this->venta_mayorista && $producto->precio_mayorista > 0 ? $producto->precio_mayorista : $producto->precio_base;
-
-                    DetVenta::create([
-                        'venta_id' => $this->ventaId,
-                        'producto_id' => $producto->id,
-                        'cant' => $cantidadAUtilizar,
-                        'precio_venta' => $precio,
-                        'det_compra_id' => $detCompra->id,
-                    ]);
-
-                    $cantidadRestante -= $cantidadAUtilizar;
-
-                    $this->productos[] = [
-                        'producto_id' => $producto->id,
-                        'nombre' => $producto->nombre,
-                        'precio' => $precio,
-                        'cantidad' => $cantidadAUtilizar,
-                    ];
-
-                    $montoNuevoProducto += $precio * $cantidadAUtilizar;
-                }
-
-                $this->montoTotal += $montoNuevoProducto;
-            });
-        } else {
-            // Si el producto tiene stock infinito
-            DB::transaction(function () use ($producto) {
                 $precio = $this->venta_mayorista && $producto->precio_mayorista > 0 ? $producto->precio_mayorista : $producto->precio_base;
-
-                DetVenta::create([
-                    'venta_id' => $this->ventaId,
-                    'producto_id' => $producto->id,
-                    'cant' => $this->cantidad,
-                    'precio_venta' => $precio,
-                    'det_compra_id' => 0,
-                ]);
 
                 $this->productos[] = [
                     'producto_id' => $producto->id,
                     'nombre' => $producto->nombre,
                     'precio' => $precio,
-                    'cantidad' => $this->cantidad,
+                    'cantidad' => $cantidadAUtilizar,
+                    'det_compra_id' => $detCompra->id
                 ];
 
-                $this->montoTotal += $precio * $this->cantidad;
-            });
+                $montoNuevoProducto += $precio * $cantidadAUtilizar;
+                $cantidadRestante -= $cantidadAUtilizar;
+            }
+
+            $this->montoTotal += $montoNuevoProducto;
+            $this->dispatch('showToast', [
+                'type' => 'success',
+                'message' => 'Se agregó correctamente el producto'
+            ]);
+        } else {
+            // Si el producto tiene stock infinito
+            $precio = $this->venta_mayorista && $producto->precio_mayorista > 0 ? $producto->precio_mayorista : $producto->precio_base;
+
+            $this->productos[] = [
+                'producto_id' => $producto->id,
+                'nombre' => $producto->nombre,
+                'precio' => $precio,
+                'cantidad' => $this->cantidad,
+                'det_compra_id' => 0
+            ];
+
+            $this->montoTotal += $precio * $this->cantidad;
+            $this->dispatch('showToast', [
+                'type' => 'success',
+                'message' => 'Se agregó correctamente el producto'
+            ]);
         }
 
         $this->cantidad = 1;
     }
 
-    // public function updateVenta()
-    // {
-    //     DB::transaction(function () {
-    //         $venta = Venta::find($this->ventaId);
-
-    //         if (!$venta) {
-    //             $this->dispatch('showToast', [['type' => 'error', 'message' => 'Venta no encontrada.']]);
-    //             return;
-    //         }
-
-    //         // Actualiza la información de la venta
-    //         $venta->descripcion = $this->descripcion;
-    //         $venta->cuenta_id = $this->cuenta_id;
-    //         $venta->venta_mayorista = $this->venta_mayorista; // Guardar si es una venta mayorista
-    //         $venta->save();
-
-    //         // Inicializa el monto total
-    //         $nuevoMontoTotal = 0;
-
-    //         // Actualiza los productos en la venta
-    //         foreach ($this->productos as $producto) {
-    //             $detVenta = DetVenta::where('venta_id', $this->ventaId)
-    //                 ->where('producto_id', $producto['producto_id'])
-    //                 ->first();
-
-    //             if ($detVenta) {
-    //                 // Calcular el cambio en cantidad
-    //                 $cantidadAnterior = $detVenta->cant;
-    //                 $nuevaCantidad = $producto['cantidad'];
-
-    //                 // Actualizar el stock de DetCompra
-    //                 if ($cantidadAnterior !== $nuevaCantidad) {
-    //                     // Si hay un cambio, ajustar el stock
-    //                     if ($nuevaCantidad > $cantidadAnterior) {
-    //                         // Aumentar stock
-    //                         $diferencia = $nuevaCantidad - $cantidadAnterior;
-    //                         $detCompra = DetCompra::find($detVenta->det_compra_id);
-    //                         if ($detCompra) {
-    //                             $detCompra->stock -= $diferencia; // Restar del stock
-    //                             $detCompra->save();
-    //                         }
-    //                     } else {
-    //                         // Disminuir stock
-    //                         $diferencia = $cantidadAnterior - $nuevaCantidad;
-    //                         $detCompra = DetCompra::find($detVenta->det_compra_id);
-    //                         if ($detCompra) {
-    //                             $detCompra->stock += $diferencia; // Aumentar al stock
-    //                             $detCompra->save();
-    //                         }
-    //                     }
-    //                 }
-
-    //                 $detVenta->cant = $nuevaCantidad;
-    //                 $detVenta->precio_venta = $producto['precio'];
-    //                 $detVenta->save();
-    //             } else {
-    //                 DetVenta::create([
-    //                     'venta_id' => $this->ventaId,
-    //                     'producto_id' => $producto['producto_id'],
-    //                     'cant' => $producto['cantidad'],
-    //                     'precio_venta' => $producto['precio'],
-    //                 ]);
-    //             }
-
-    //             // Recalcular el monto total
-    //             $nuevoMontoTotal += $producto['precio'] * $producto['cantidad'];
-    //         }
-
-    //         // Elimina los productos que ya no están en la lista
-    //         $productosIds = collect($this->productos)->pluck('producto_id');
-    //         DetVenta::where('venta_id', $this->ventaId)->whereNotIn('producto_id', $productosIds)->delete();
-
-    //         // Actualiza el movimiento de la cuenta
-    //         $movimiento = Movimiento::where('venta_id', $this->ventaId)->first();
-    //         if ($movimiento) {
-    //             $movimiento->monto = $nuevoMontoTotal;
-    //             $movimiento->save();
-    //         }
-
-    //         // Actualiza el monto total de la venta
-    //         $venta->monto_total = $nuevoMontoTotal;
-    //         $venta->save();
-
-    //         $this->productos = [];
-    //         $this->reset('producto_id', 'cantidad');
-    //         $this->getTabla();
-    //     });
-
-    //     $this->dispatch('closeModal');
-    // }
-
     public function updateVenta()
     {
+        // Calcular el monto total de los métodos de pago ingresados
+        $montoTotalMetodosPago = array_sum(array_column($this->metodosPago, 'monto'));
+
+        // Validar que la suma de los métodos de pago coincida con el monto total de la venta
+        if ($montoTotalMetodosPago != $this->montoTotal) {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'El monto de los métodos de pago no coincide con el total de la venta. Ajuste los montos antes de continuar.'
+            ]);
+            return; // Detener si la validación falla
+        }
+
+        // Iniciar la transacción de actualización solo si la validación pasa
         DB::transaction(function () {
             $venta = Venta::find($this->ventaId);
 
@@ -296,10 +316,11 @@ class Ventas extends Component
 
             // Actualiza la información de la venta
             $venta->descripcion = $this->descripcion;
-            $venta->venta_mayorista = $this->venta_mayorista; // Guardar si es una venta mayorista
+            $venta->venta_mayorista = $this->venta_mayorista;
+            $venta->monto_total = $this->montoTotal;
             $venta->save();
 
-            // Inicializa el monto total de la venta
+            // Inicializa el monto total de la venta basado en los productos
             $nuevoMontoTotal = 0;
 
             // Actualiza los productos en la venta y ajusta inventario
@@ -357,7 +378,6 @@ class Ventas extends Component
             foreach ($this->metodosPago as $metodo) {
                 if (isset($metodo['cuenta_id'])) {
                     $venta->cuentas()->attach($metodo['cuenta_id'], ['monto' => $metodo['monto']]);
-                    $nuevoMontoTotal += $metodo['monto'];
                 }
             }
 
@@ -381,55 +401,6 @@ class Ventas extends Component
         $this->dispatch('closeModal');
     }
 
-
-    // public function editVenta($ventaId)
-    // {
-    //     $venta = Venta::with('detVentas.producto', 'cuenta', 'cuentas')->find($ventaId);
-
-    //     if (!$venta) {
-    //         $this->dispatch('showToast', [['type' => 'error', 'message' => 'Venta no encontrada.']]);
-    //         return;
-    //     }
-
-    //     $this->ventaId = $venta->id;
-    //     $this->descripcion = $venta->descripcion;
-    //     $this->montoTotal = $venta->monto_total;
-    //     $this->cuenta_id = $venta->cuenta_id;
-    //     $this->venta_mayorista = $venta->venta_mayorista;
-
-    //     // Cargar los productos de la venta
-    //     $this->productos = $venta->detVentas->map(function ($detVenta) {
-    //         return [
-    //             'producto_id' => $detVenta->producto_id,
-    //             'nombre' => $detVenta->producto->nombre,
-    //             'precio' => $detVenta->precio_venta,
-    //             'precio_mayorista' => $detVenta->producto->precio_mayorista,
-    //             'cantidad' => $detVenta->cant,
-    //         ];
-    //     })->toArray();
-
-    //     // Cargar los métodos de pago
-    //     $metodosPago = collect();
-    //     if ($venta->cuenta) {
-    //         $metodosPago->push([
-    //             'cuenta_id' => $venta->cuenta->id,
-    //             'nombre' => $venta->cuenta->nombre,
-    //             'monto' => $venta->monto_total,
-    //         ]);
-    //     }
-
-    //     foreach ($venta->cuentas as $cuenta) {
-    //         $metodosPago->push([
-    //             'cuenta_id' => $cuenta->id,
-    //             'nombre' => $cuenta->nombre,
-    //             'monto' => $cuenta->pivot->monto,
-    //         ]);
-    //     }
-
-    //     $this->metodosPago = $metodosPago->toArray();
-    //     $this->recalcularPreciosVenta();
-    //     $this->dispatch('openEditModal');
-    // }
 
     public function editVenta($ventaId)
     {
@@ -506,6 +477,42 @@ class Ventas extends Component
     }
 
 
+    // public function eliminarProducto($index)
+    // {
+    //     if (!isset($this->productos[$index])) {
+    //         $this->dispatch('showToast', [['type' => 'error', 'message' => 'Producto no encontrado.']]);
+    //         return;
+    //     }
+
+    //     $producto = $this->productos[$index];
+    //     $detVenta = DetVenta::where('venta_id', $this->ventaId)
+    //         ->where('producto_id', $producto['producto_id'])
+    //         ->first();
+
+    //     if ($detVenta) {
+    //         if ($detVenta->det_compra_id) {
+    //             $detCompra = DetCompra::find($detVenta->det_compra_id);
+    //             if ($detCompra) {
+    //                 $detCompra->increment('stock', $producto['cantidad']);
+    //             }
+    //         }
+
+    //         $detVenta->delete();
+
+    //         unset($this->productos[$index]);
+
+    //         $this->montoTotal = array_sum(array_map(function ($producto) {
+    //             return $producto['precio'] * $producto['cantidad'];
+    //         }, $this->productos));
+
+    //         Venta::find($this->ventaId)
+    //             ->update(['monto_total' => $this->montoTotal]);
+
+    //         $this->dispatch('showToast', ['type' => 'success', 'message' => 'Producto eliminado y stock actualizado.']);
+    //     } else {
+    //         $this->dispatch('showToast', ['type' => 'error', 'message' => 'El producto no fue encontrado en la base de datos.']);
+    //     }
+    // }
     public function eliminarProducto($index)
     {
         if (!isset($this->productos[$index])) {
@@ -514,34 +521,27 @@ class Ventas extends Component
         }
 
         $producto = $this->productos[$index];
-        $detVenta = DetVenta::where('venta_id', $this->ventaId)
-            ->where('producto_id', $producto['producto_id'])
-            ->first();
 
-        if ($detVenta) {
-            if ($detVenta->det_compra_id) {
-                $detCompra = DetCompra::find($detVenta->det_compra_id);
-                if ($detCompra) {
-                    $detCompra->increment('stock', $producto['cantidad']);
-                }
+        // Validar que el índice 'det_compra_id' exista y sea diferente de 0
+        if (isset($producto['det_compra_id']) && $producto['det_compra_id'] !== 0) {
+            $detCompra = DetCompra::find($producto['det_compra_id']);
+            if ($detCompra) {
+                $detCompra->stock += $producto['cantidad'];
+                // $detCompra->save();
             }
-
-            $detVenta->delete();
-
-            unset($this->productos[$index]);
-
-            $this->montoTotal = array_sum(array_map(function ($producto) {
-                return $producto['precio'] * $producto['cantidad'];
-            }, $this->productos));
-
-            Venta::find($this->ventaId)
-                ->update(['monto_total' => $this->montoTotal]);
-
-            $this->dispatch('showToast', [['type' => 'success', 'message' => 'Producto eliminado y stock actualizado.']]);
-        } else {
-            $this->dispatch('showToast', [['type' => 'error', 'message' => 'El producto no fue encontrado en la base de datos.']]);
         }
+
+        // Remover el producto de la lista en memoria
+        unset($this->productos[$index]);
+
+        // Actualizar el monto total en memoria
+        $this->montoTotal = array_sum(array_map(function ($producto) {
+            return $producto['precio'] * $producto['cantidad'];
+        }, $this->productos));
+
+        $this->dispatch('showToast', ['type' => 'success', 'message' => 'Producto eliminado y stock actualizado.']);
     }
+
 
     public function deleteVenta($ventaId)
     {
@@ -586,5 +586,131 @@ class Ventas extends Component
         });
 
         return true;
+    }
+
+
+    public function validarYGuardar()
+    {
+        // dd($this->metodosPago);
+        // Calcular el monto total de los métodos de pago ingresados y redondearlo a 2 decimales
+        $montoTotalMetodosPago = round(array_sum(array_column($this->metodosPago, 'monto')), 2);
+        $montoTotalVenta = round($this->montoTotal, 2);
+
+        // Validar que la suma de los métodos de pago coincida con el monto total de la venta
+        if ($montoTotalMetodosPago !== $montoTotalVenta) {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'El monto de los métodos de pago no coincide con el total de la venta. Ajuste los montos antes de continuar.'
+            ]);
+            return; // Detener si la validación falla
+        }
+
+        // Validar que cada método de pago tenga cuenta_id, nombre y monto
+        foreach ($this->metodosPago as $metodo) {
+            if (empty($metodo['cuenta_id']) || !isset($metodo['monto'])) {
+                $this->dispatch('showToast', [
+                    'type' => 'error',
+                    'message' => 'Cada método de pago debe tener una cuenta, nombre y monto específicos.'
+                ]);
+                return;
+            }
+        }
+
+        // Iniciar la transacción
+        DB::transaction(function () use ($montoTotalVenta) {
+            // Crear o buscar la venta en la base de datos
+            $venta = Venta::find($this->ventaId) ?? new Venta();
+            $venta->descripcion = $this->descripcion;
+            $venta->venta_mayorista = $this->venta_mayorista;
+            $venta->monto_total = $this->montoTotal;
+            $venta->save();
+
+            // Gestionar los detalles de la venta y el inventario
+            $productosExistentes = DetVenta::where('venta_id', $venta->id)->get();
+            $productosNuevos = collect($this->productos)->keyBy('producto_id');
+
+            // Ajustar inventario para productos eliminados
+            foreach ($productosExistentes as $detalleExistente) {
+                if (!$productosNuevos->has($detalleExistente->producto_id)) {
+                    if ($detalleExistente->det_compra_id) {
+                        $detCompra = DetCompra::find($detalleExistente->det_compra_id);
+                        if ($detCompra) {
+                            $detCompra->increment('stock', $detalleExistente->cant);
+                        }
+                    }
+                    $detalleExistente->delete();
+                }
+            }
+
+            // Crear o actualizar los detalles de venta y ajustar inventario para productos nuevos
+            foreach ($this->productos as $producto) {
+                $detVenta = DetVenta::where('venta_id', $venta->id)
+                    ->where('producto_id', $producto['producto_id'])
+                    ->first();
+
+                $cantidadNueva = $producto['cantidad'];
+                $detCompra = isset($producto['det_compra_id']) && $producto['det_compra_id'] != 0
+                    ? DetCompra::find($producto['det_compra_id'])
+                    : null;
+
+                if ($detVenta) {
+                    $cantidadAnterior = $detVenta->cant;
+                    if ($cantidadAnterior !== $cantidadNueva && $detCompra) {
+                        $ajuste = $cantidadNueva - $cantidadAnterior;
+                        $detCompra->decrement('stock', $ajuste);
+                    }
+                    $detVenta->update([
+                        'cant' => $cantidadNueva,
+                        'precio_venta' => $producto['precio'],
+                    ]);
+                } else {
+                    DetVenta::create([
+                        'venta_id' => $venta->id,
+                        'producto_id' => $producto['producto_id'],
+                        'cant' => $cantidadNueva,
+                        'precio_venta' => $producto['precio'],
+                        'det_compra_id' => $producto['det_compra_id'] ?? 0,
+                    ]);
+                    if ($detCompra) {
+                        $detCompra->decrement('stock', $cantidadNueva);
+                    }
+                }
+            }
+
+            // Actualizar los métodos de pago de manera precisa sin sobrescribir erróneamente
+            $venta->cuentas()->detach();
+            foreach ($this->metodosPago as $metodo) {
+                if (isset($metodo['cuenta_id'])) {
+                    $venta->cuentas()->attach($metodo['cuenta_id'], ['monto' => $metodo['monto']]);
+                }
+            }
+
+            // Eliminar movimientos existentes asociados a la venta
+            Movimiento::where('venta_id', $venta->id)->delete();
+
+            // Crear un movimiento para cada cuenta en los métodos de pago
+            foreach ($this->metodosPago as $metodo) {
+                if (isset($metodo['cuenta_id'])) {
+                    Movimiento::create([
+                        'venta_id' => $venta->id,
+                        'cuenta_id' => $metodo['cuenta_id'],
+                        'tipo' => 'ingreso',
+                        'monto' => $metodo['monto'],
+                        'descripcion' => "Ingreso por modificación de venta #{$venta->id} en cuenta {$metodo['nombre']}",
+                        'usuario_id' => Auth::id(),
+                        'fecha' => now()
+                    ]);
+                }
+            }
+
+            // Resetear la lista de productos y otros campos de venta
+            $this->productos = [];
+            $this->reset('producto_id', 'cantidad');
+            $this->getTabla();
+        });
+
+        // Notificar éxito y cerrar el modal
+        $this->dispatch('showToast', ['type' => 'success', 'message' => 'Venta actualizada correctamente.']);
+        $this->dispatch('closeModal');
     }
 }

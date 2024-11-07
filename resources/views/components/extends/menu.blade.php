@@ -92,6 +92,14 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('ver cuentas')
+                        <li class="{{ Route::is('creditos') ? 'active' : '' }}">
+                            <a href="{{ route('creditos') }}" onclick="blockPage()">
+                                <i class="fa-regular fa-credit-card"></i>
+                                <span class="menu-item" data-i18n="nav.support_documentation.main">Creditos</span>
+                            </a>
+                        </li>
+                        @endcan
                         @can('ver movimientos')
                             <li class="{{ Route::is('movimientos') ? 'active' : '' }}">
                                 <a href="{{ route('movimientos') }}" onclick="blockPage()">

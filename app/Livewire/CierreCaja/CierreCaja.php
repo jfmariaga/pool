@@ -31,8 +31,6 @@ class CierreCaja extends Component
     public function mount()
     {
         $this->getUltCierre();
-
-        // $this->corregirCierres();
     }
 
     public function render()
@@ -111,7 +109,7 @@ class CierreCaja extends Component
         }
 
         // organizamos los totales
-        
+
         // calcular ventas con la vuelta rara de devolución saldo
         $ventas_positivas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'ingreso')->sum('monto');
         $ventas_negativas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'egreso')->sum('monto');
@@ -216,19 +214,19 @@ class CierreCaja extends Component
             $ult_venta      = 0;
             $ult_compra     = 0;
             $ult_movimiento = 0;
-    
+
             // si ya existe un cierre, tomamos como base los últimos IDs procesados
             if (isset($ult_cierre->id)) {
-    
+
                 $ult_cierre = $ult_cierre->toArray();
-    
+
                 $ult_venta          = $ult_cierre['ult_venta'];
                 $ult_compra         = $ult_cierre['ult_compra'];
                 $ult_movimiento     = $ult_cierre['ult_movimiento'];
-    
+
                 // si ya había un ultimo cierre, el inicio del nuevo es el fin del ultimo
                 $total_inicio = $ult_cierre['total_cierre'];
-  
+
                 // consultamos los movimientos generados después del ultimo cierre
                 $movimientos    = Movimiento::where('id', '>', $ult_cierre['ult_movimiento'])->where('id', '<=', $cierre->ult_movimiento)->get();
 
@@ -238,11 +236,11 @@ class CierreCaja extends Component
                 $movimientos    = Movimiento::where('id', '<=', $cierre->ult_movimiento)->get();
 
             }
-    
+
             // organizamos el cierre por cada cuenta
             $cuentas = Cuenta::select('id', 'nombre')->where('status', 1)->get()->toArray();
             if ($cuentas) {
-    
+
                 // organizamos la matriz de las cuentas
                 foreach ($cuentas as $cuenta) {
                     $det_cuentas[$cuenta['id']]['nombre']  = $cuenta['nombre']; // con lo que empezó
@@ -251,14 +249,14 @@ class CierreCaja extends Component
                     $det_cuentas[$cuenta['id']]['egreso']  = 0; // lo que salió
                     $det_cuentas[$cuenta['id']]['cierre']  = 0; // con lo que terminó
                 }
-    
+
                 // el inicio de la cuenta es el total cierre del ultimo cierre de esa cuenta
                 if (isset($ult_cierre['detalles']) && $ult_cierre['detalles']) {
                     foreach ($ult_cierre['detalles'] as $det_cierre) {
                         $det_cuentas[$det_cierre['cuenta_id']]['inicio'] = $det_cierre['total_cierre'];
                     }
                 }
-    
+
                 // organizamos los movimientos por cuentas
                 foreach ($movimientos as $movimiento) {
                     if ($movimiento->tipo == 'ingreso') { // suma
@@ -267,24 +265,24 @@ class CierreCaja extends Component
                         $det_cuentas[$movimiento->cuenta_id]['egreso']  += $movimiento->monto;
                     }
                 }
-    
+
                 // calculamos el cierre por cuenta
                 foreach ($this->det_cuentas as $key => $cuenta) {
                     $det_cuentas[$key]['cierre']  = $cuenta['inicio'] + ($cuenta['ingreso'] - $cuenta['egreso']);
                 }
             }
-    
+
             // organizamos los totales
-            
+
             // calcular ventas con la vuelta rara de devolución saldo
             $ventas_positivas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'ingreso')->sum('monto');
             $ventas_negativas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'egreso')->sum('monto');
             $total_ventas     = $ventas_positivas - $ventas_negativas;
-        
+
             $total_compras    = $movimientos->whereNotNull('compra_id')->sum('monto');
             $total_egresos    = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'egreso')->sum('monto');
             $total_ingresos   = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'ingreso')->sum('monto');
-    
+
             $total_cierre     = $total_inicio + $total_ventas - $total_compras - $total_egresos + $total_ingresos;
 
 
