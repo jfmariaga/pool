@@ -42,4 +42,9 @@ class Venta extends Model
         return $this->belongsToMany(Cuenta::class, 'venta_cuenta', 'venta_id', 'cuenta_id')
             ->withPivot('monto');
     }
+
+    public function credito()
+    {
+        return $this->hasOne(Credito::class);
+    }
 }
