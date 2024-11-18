@@ -118,7 +118,8 @@
                         "Movimientos": ["ver movimientos", "crear movimientos", "editar movimientos",
                             "eliminar movimientos"
                         ],
-                        "Roles": ["ver roles", "crear roles", "editar roles", "eliminar roles"]
+                        "Roles": ["ver roles", "crear roles", "editar roles", "eliminar roles"],
+                        "Creditos": ["ver creditos", "crear creditos", "editar creditos", "eliminar creditos"]
                     };
 
                     // Filtrar las categorías con permisos seleccionados

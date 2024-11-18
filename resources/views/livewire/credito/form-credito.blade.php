@@ -20,7 +20,7 @@
             <x-input model="$wire.monto" label="Valor" required="true" class="mask_decimales"></x-input>
         </div>
 
-        <div class="col-md-12 mt-1">
+        {{-- <div class="col-md-12 mt-1">
             <label for="Adjunto">Soporte</label>
             <input class="form-control" type="file" wire:model="adjunto">
         </div>
@@ -50,7 +50,7 @@
                     </div>
                 </div>
             @endif
-        </div>
+        </div> --}}
     </div>
 
     <!-- Footer con botones de acción -->

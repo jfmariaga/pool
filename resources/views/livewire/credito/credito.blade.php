@@ -8,10 +8,10 @@
                 </div>
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
-                        {{-- @can('crear credito') --}}
-                        <a href="javascript:" x-on:click="openForm()" id="btn_form_credito" class="btn btn-dark"> <i
-                                class="la la-plus"></i> Nuevo Credito</a>
-                        {{-- @endcan --}}
+                        @can('crear creditos')
+                            <a href="javascript:" x-on:click="openForm()" id="btn_form_credito" class="btn btn-dark"> <i
+                                    class="la la-plus"></i> Nuevo Credito</a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -172,7 +172,7 @@
                     let isEditable = true;
                     console.log(credito);
 
-                    if (credito.venta_id ||credito.des_monto <= 0 || credito.abonos.length > 0) {
+                    if (credito.venta_id || credito.des_monto <= 0 || credito.abonos.length > 0) {
                         isEditable = false;
                     }
 
@@ -198,18 +198,23 @@
                         <td>
                             <div class="d-flex">
                                 <x-buttonsm click="abono('${credito.id}')"><i class="la la-eye"></i></x-buttonsm>
+                                @can('editar creditos')
                                 ${editButton}
+                                @endcan
+                                @can('eliminar creditos')
                                     <template x-if="!credito.compra_id && !credito.venta_id">
                                       <x-buttonsm click="deletecredito('${credito.id}')">
                                          <i class="la la-trash"></i>
                                       </x-buttonsm>
                                     </template>
+                                @endcan
+
                                 ${
                                         adjuntoRuta ? `
-                                                          <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
-                                                           <i class="la la-paperclip"></i>
-                                                          </a>
-                                                          ` : ``
+                                                                  <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
+                                                                   <i class="la la-paperclip"></i>
+                                                                  </a>
+                                                                  ` : ``
                                     }
                             </div>
                         </td>`;
