@@ -73,10 +73,10 @@ class CierreCaja extends Component
         }
 
         // consultamos los movimientos generados después del ultimo cierre
-        $movimientos            = Movimiento::where('id', '>', $ult_movimiento)->get();        
+        $movimientos            = Movimiento::where('id', '>', $ult_movimiento)->get();
 
         // organizamos el cierre por cada cuenta
-        $cuentas = Cuenta::select('id', 'nombre')->where('status', 1)->get()->toArray();
+        $cuentas = Cuenta::select('id', 'nombre')->where('status', 1)->where('id','<>', 0)->get()->toArray();
         if ($cuentas) {
 
             // organizamos la matriz de las cuentas
