@@ -36,7 +36,7 @@ class Movimientos extends Component
 
     public function mount()
     {
-        $this->cuentas = Cuenta::where('status', 1)->get();
+        $this->cuentas = Cuenta::where('status', 1)->where('id','<>', 0)->get();
         $this->usuarios = User::where('status', 1)->get();
         $this->fecha   = now()->format('Y-m-d');
 

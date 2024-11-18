@@ -6,25 +6,37 @@
     </x-slot>
 
     <div class="row">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card box-shadow-1 p-2">
-                <b class="fs_12">Total Ventas</b>
+                <b class="fs_12">Ventas de contado</b>
                 <span class="mt-1" x-text="__numberFormat( comprobante.total_ventas )"></span>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
+            <div class="card box-shadow-1 p-2">
+                <b class="fs_12">Ventas a Crédito</b>
+                <span class="mt-1" x-text="__numberFormat( comprobante.total_creditos )"></span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card box-shadow-1 p-2">
+                <b class="fs_12">Abono a Créditos</b>
+                <span class="mt-1" x-text="__numberFormat( comprobante.abonos_creditos )"></span>
+            </div>
+        </div>
+        <div class="col-md-4">
             <div class="card box-shadow-1 p-2">
                 <b class="fs_12">Total Compras</b>
                 <span class="mt-1" x-text="__numberFormat( comprobante.total_compras )"></span>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card box-shadow-1 p-2">
                 <b class="fs_12">Egresos Manuales</b>
                 <span class="mt-1" x-text="__numberFormat( comprobante.total_egresos )"></span>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card box-shadow-1 p-2">
                 <b class="fs_12">Ingresos Manuales</b>
                 <span class="mt-1" x-text="__numberFormat( comprobante.total_ingresos )"></span>

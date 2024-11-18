@@ -19,7 +19,8 @@ class Cuentas extends Component
 
     public function getCuentas(){
         $this->skipRender();
-        $cuentas = Cuenta::all()->toArray();
+        // $cuentas = Cuenta::all()->toArray();
+        $cuentas = Cuenta::where('id', '<>', 0)->get()->toArray();
         foreach( $cuentas as $key => $c ){
             $ingresos = Movimiento::where('cuenta_id', $c['id'])->where('tipo', 'ingreso')->sum('monto');
             $egresos  = Movimiento::where('cuenta_id', $c['id'])->where('tipo', 'egreso')->sum('monto');

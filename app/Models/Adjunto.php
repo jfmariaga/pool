@@ -21,4 +21,8 @@ class Adjunto extends Model
     {
         return $this->belongsTo(Movimiento::class);
     }
+
+    public function credito(){
+        return $this->belongsTo(Credito::class);
+    }
 }

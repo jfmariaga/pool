@@ -23,6 +23,8 @@ class CierreCaja extends Component
     // valores generados después del ultimo cierre
     public $total_compras   = 0;
     public $total_ventas    = 0;
+    public $total_creditos  = 0;
+    public $abonos_creditos = 0;
     public $total_egresos   = 0;
     public $total_ingresos  = 0;
     public $total_inicio    = 0;
@@ -71,7 +73,7 @@ class CierreCaja extends Component
         }
 
         // consultamos los movimientos generados después del ultimo cierre
-        $movimientos    = Movimiento::where('id', '>', $ult_movimiento)->get();
+        $movimientos            = Movimiento::where('id', '>', $ult_movimiento)->get();        
 
         // organizamos el cierre por cada cuenta
         $cuentas = Cuenta::select('id', 'nombre')->where('status', 1)->get()->toArray();
@@ -95,10 +97,13 @@ class CierreCaja extends Component
 
             // organizamos los movimientos por cuentas
             foreach ($movimientos as $movimiento) {
-                if ($movimiento->tipo == 'ingreso') { // suma
-                    $this->det_cuentas[$movimiento->cuenta_id]['ingreso'] += $movimiento->monto;
-                } else { // resta
-                    $this->det_cuentas[$movimiento->cuenta_id]['egreso']  += $movimiento->monto;
+                // las ventas a crédito no entran enseguida a las cuentas
+                if( $movimiento->cuenta_id > 0 ){ // veta de contado
+                    if ($movimiento->tipo == 'ingreso') { // suma
+                        $this->det_cuentas[$movimiento->cuenta_id]['ingreso'] += $movimiento->monto;
+                    } else { // resta
+                        $this->det_cuentas[$movimiento->cuenta_id]['egreso']  += $movimiento->monto;
+                    }
                 }
             }
 
@@ -111,18 +116,20 @@ class CierreCaja extends Component
         // organizamos los totales
 
         // calcular ventas con la vuelta rara de devolución saldo
-        $ventas_positivas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'ingreso')->sum('monto');
-        $ventas_negativas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'egreso')->sum('monto');
+        $ventas_positivas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'ingreso')->where('cuenta_id', '>', '0')->whereNull('credito_id')->sum('monto');
+        $ventas_negativas       = $movimientos->whereNotNull('venta_id')->where('tipo', 'egreso')->where('cuenta_id', '>', '0')->whereNull('credito_id')->sum('monto');
         $this->total_ventas     = $ventas_positivas - $ventas_negativas;
+        $this->total_creditos   = $movimientos->whereNotNull('venta_id')->where('tipo', 'ingreso')->where('cuenta_id', '=', '0')->whereNull('credito_id')->sum('monto');
+        $this->abonos_creditos   = $movimientos->where('tipo', 'ingreso')->where('credito_id', '>', '0')->sum('monto');
 
         // calcular ventas normales
         // $this->total_ventas     = $movimientos->whereNotNull('venta_id')->sum('monto');
 
-        $this->total_compras    = $movimientos->whereNotNull('compra_id')->sum('monto');
-        $this->total_egresos    = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'egreso')->sum('monto');
-        $this->total_ingresos   = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'ingreso')->sum('monto');
+        $this->total_compras    = $movimientos->whereNotNull('compra_id')->sum('monto'); // compras
+        $this->total_egresos    = $movimientos->whereNull('venta_id')->whereNull('compra_id')->where('tipo', 'egreso')->sum('monto'); // egresos manuales
+        $this->total_ingresos   = $movimientos->whereNull('venta_id')->whereNull('compra_id')->whereNull('credito_id')->where('tipo', 'ingreso')->sum('monto'); // ingresos manuales
 
-        $this->total_cierre     = $this->total_inicio + $this->total_ventas - $this->total_compras - $this->total_egresos + $this->total_ingresos;
+        $this->total_cierre     = $this->total_inicio + $this->total_ventas + $this->abonos_creditos - $this->total_compras - $this->total_egresos + $this->total_ingresos;
     }
 
     // ejecuta el cierre de caja hasta ese momento
@@ -149,6 +156,8 @@ class CierreCaja extends Component
             'total_compras'  => $this->total_compras,
             'total_egresos'  => $this->total_egresos,
             'total_ingresos' => $this->total_ingresos,
+            'total_creditos' => $this->total_creditos,
+            'abonos_creditos'=> $this->abonos_creditos,
         ]);
 
         if (isset($cierre->id)) {

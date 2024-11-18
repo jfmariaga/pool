@@ -15,6 +15,7 @@ use App\Models\ProductoVentaTemporal;
 use App\Models\VentaProducto;
 use App\Models\VentasTemporales;
 use App\Models\Categoria;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -36,6 +37,8 @@ class FormVentas extends Component
     public $montoCuenta;
     public $cuentasSeleccionadasIds = []; // Array para el ID de la cuenta por cada venta
     public $montosCuentas = [];
+    public $deudorIds = [];
+    public $usuarios;
 
     protected $rules = [
         'descripcion' => 'required|string|max:255',
@@ -48,7 +51,9 @@ class FormVentas extends Component
         $this->cuentas = Cuenta::all();
         $this->productosall = Producto::where('disponible', 1)->with('categoria')->get();
         $this->categorias  = Categoria::where('status', 1)->get();
+        $this->usuarios = User::where('status', 1)->get();
         $this->cargarVentasTemporales();
+        $this->deudorIds = [];
     }
 
 
@@ -139,6 +144,20 @@ class FormVentas extends Component
                         'monto' => $cuenta->monto
                     ];
                 })->toArray();
+
+            $creditos = DB::table('credito_temporal')
+                ->where('venta_temporal_id', $venta->id)
+                ->join('users', 'credito_temporal.deudor_id', '=', 'users.id') // Unimos con la tabla de usuarios
+                ->select('credito_temporal.monto', 'users.name as deudor_nombre') // Obtenemos el nombre del deudor
+                ->get();
+
+            foreach ($creditos as $credito) {
+                $cuentasAsignadas[] = [
+                    'cuenta_id' => 0, // ID especial para crédito
+                    'nombre' => 'Crédito - ' . $credito->deudor_nombre, // Mostrar el nombre del deudor
+                    'monto' => $credito->monto
+                ];
+            }
 
             $this->ventas[] = [
                 'descripcion' => $venta->descripcion,
@@ -407,6 +426,14 @@ class FormVentas extends Component
 
     // public function agregarCuenta($ventaIndex)
     // {
+    //     if (empty($this->ventas[$ventaIndex]['productos'])) {
+    //         $this->dispatch('showToast', ['type' => 'error', 'message' => "Debe agregar productos antes de asignar una cuenta."]);
+    //         return;
+    //     }
+    //     if ($this->ventas[$ventaIndex]['saldo_pendiente'] <= 0) {
+    //         $this->dispatch('showToast', ['type' => 'error', 'message' => "El saldo de la venta ya está cubierto. No se pueden agregar más métodos de pago."]);
+    //         return;
+    //     }
     //     $this->validate([
     //         "montosCuentas.$ventaIndex" => 'required|numeric|min:0.01',
     //         "cuentasSeleccionadasIds.$ventaIndex" => 'required|exists:cuentas,id'
@@ -414,6 +441,12 @@ class FormVentas extends Component
 
     //     $ventaTemporalId = $this->ventas[$ventaIndex]['venta_temporal_id'];
     //     $cuenta = Cuenta::find($this->cuentasSeleccionadasIds[$ventaIndex]);
+
+    //     // Validar si la cuenta no contiene "EFECTIVO" y el monto no supera el total de la venta
+    //     if (strpos(strtoupper($cuenta->nombre), 'EFECTIVO') === false && $this->montosCuentas[$ventaIndex] > $this->ventas[$ventaIndex]['monto']) {
+    //         $this->dispatch('showToast', ['type' => 'error', 'message' => "La cuenta seleccionada no puede superar el valor total de la venta."]);
+    //         return;
+    //     }
 
     //     // Guardar en la tabla temporal
     //     DB::table('venta_cuenta_temporal')->insert([
@@ -454,44 +487,103 @@ class FormVentas extends Component
         }
         $this->validate([
             "montosCuentas.$ventaIndex" => 'required|numeric|min:0.01',
-            "cuentasSeleccionadasIds.$ventaIndex" => 'required|exists:cuentas,id'
+            "cuentasSeleccionadasIds.$ventaIndex" => 'required'
         ]);
 
         $ventaTemporalId = $this->ventas[$ventaIndex]['venta_temporal_id'];
-        $cuenta = Cuenta::find($this->cuentasSeleccionadasIds[$ventaIndex]);
+        $cuentaSeleccionada = $this->cuentasSeleccionadasIds[$ventaIndex];
+        $montoAsignado = $this->montosCuentas[$ventaIndex];
 
-        // Validar si la cuenta no contiene "EFECTIVO" y el monto no supera el total de la venta
-        if (strpos(strtoupper($cuenta->nombre), 'EFECTIVO') === false && $this->montosCuentas[$ventaIndex] > $this->ventas[$ventaIndex]['monto']) {
-            $this->dispatch('showToast', ['type' => 'error', 'message' => "La cuenta seleccionada no puede superar el valor total de la venta."]);
-            return;
+        // Validación y procesamiento para cuenta de "Crédito"
+        if ($cuentaSeleccionada == 0) {
+            if (empty($this->deudorIds[$ventaIndex])) {
+                $this->dispatch('showToast', ['type' => 'error', 'message' => "Debe seleccionar un usuario para el crédito."]);
+                return;
+            }
+
+            if ($montoAsignado > $this->ventas[$ventaIndex]['saldo_pendiente']) {
+                $this->dispatch('showToast', ['type' => 'error', 'message' => "El monto de crédito no puede superar el valor total del saldo pendiente"]);
+                return;
+            }
+
+            $deudor = User::find($this->deudorIds[$ventaIndex]);
+
+            $this->ventas[$ventaIndex]['cuentasSeleccionadas'][] = [
+                'cuenta_id' => 0,
+                'nombre' => 'Crédito - ' . $deudor->name,
+                'monto' => $montoAsignado
+            ];
+
+            DB::table('credito_temporal')->insert([
+                'deudor_id' => $this->deudorIds[$ventaIndex],
+                'responsable_id' => Auth::id(),
+                'venta_temporal_id' => $ventaTemporalId,
+                'monto' => $montoAsignado
+            ]);
+        } else {
+            $cuenta = Cuenta::find($cuentaSeleccionada);
+
+            // Validación para cuentas que no son "EFECTIVO" y no pueden exceder el monto de la venta
+            if (strpos(strtoupper($cuenta->nombre), 'EFECTIVO') === false && $montoAsignado > $this->ventas[$ventaIndex]['saldo_pendiente']) {
+                $this->dispatch('showToast', ['type' => 'error', 'message' => "La cuenta seleccionada no puede superar el valor total del saldo pendiente."]);
+                return;
+            }
+
+            // Guardar en la tabla temporal para cuentas normales
+            DB::table('venta_cuenta_temporal')->insert([
+                'venta_temporal_id' => $ventaTemporalId,
+                'cuenta_id' => $cuentaSeleccionada,
+                'monto' => $montoAsignado
+            ]);
+
+            // Agregar la cuenta seleccionada con su monto
+            $this->ventas[$ventaIndex]['cuentasSeleccionadas'][] = [
+                'cuenta_id' => $cuentaSeleccionada,
+                'nombre' => $cuenta->nombre,
+                'monto' => $montoAsignado
+            ];
         }
 
-        // Guardar en la tabla temporal
-        DB::table('venta_cuenta_temporal')->insert([
-            'venta_temporal_id' => $ventaTemporalId,
-            'cuenta_id' => $this->cuentasSeleccionadasIds[$ventaIndex],
-            'monto' => $this->montosCuentas[$ventaIndex]
-        ]);
-
-        // Asegura que cuentasSeleccionadas esté inicializado y añade la cuenta con su monto
-        if (!isset($this->ventas[$ventaIndex]['cuentasSeleccionadas'])) {
-            $this->ventas[$ventaIndex]['cuentasSeleccionadas'] = [];
-        }
-
-        // Agregar la cuenta seleccionada al array de cuentas de la venta
-        $this->ventas[$ventaIndex]['cuentasSeleccionadas'][] = [
-            'cuenta_id' => $this->cuentasSeleccionadasIds[$ventaIndex],
-            'nombre' => $cuenta->nombre,
-            'monto' => $this->montosCuentas[$ventaIndex]
-        ];
-
-        // Actualizar el saldo pendiente de la venta después de asignar esta cuenta
+        // Actualizar el saldo pendiente de la venta, incluyendo el monto del crédito si aplica
         $this->ventas[$ventaIndex]['saldo_pendiente'] = $this->ventas[$ventaIndex]['monto'] - array_sum(array_column($this->ventas[$ventaIndex]['cuentasSeleccionadas'], 'monto'));
 
         // Limpiar los campos de entrada específicos de esta venta
         $this->cuentasSeleccionadasIds[$ventaIndex] = '';
         $this->montosCuentas[$ventaIndex] = '';
+        $this->deudorIds = [];
     }
+
+
+    // public function eliminarCuentaSeleccionada($ventaIndex, $cuentaIndex)
+    // {
+    //     // Obtener la cuenta seleccionada para eliminar
+    //     $cuenta = $this->ventas[$ventaIndex]['cuentasSeleccionadas'][$cuentaIndex];
+    //     $ventaTemporalId = $this->ventas[$ventaIndex]['venta_temporal_id'];
+
+    //     // Eliminar la cuenta de la tabla temporal
+    //     DB::table('venta_cuenta_temporal')
+    //         ->where('venta_temporal_id', $ventaTemporalId)
+    //         ->where('cuenta_id', $cuenta['cuenta_id'])
+    //         ->where('monto', $cuenta['monto'])
+    //         ->delete();
+
+    //     if ($cuenta['cuenta_id'] == 0) {
+    //         DB::table('credito_temporal')
+    //             ->where('venta_temporal_id', $ventaTemporalId)
+    //             ->where('deudor_id', $this->deudorIds[$ventaIndex]) // Asumiendo que tienes un array `deudorIds` con los deudores de cada venta
+    //             ->delete();
+    //     }
+
+    //     // Eliminar la cuenta del array de cuentas seleccionadas en Livewire
+    //     unset($this->ventas[$ventaIndex]['cuentasSeleccionadas'][$cuentaIndex]);
+    //     $this->ventas[$ventaIndex]['cuentasSeleccionadas'] = array_values($this->ventas[$ventaIndex]['cuentasSeleccionadas']); // Reindexar array
+
+    //     // Actualizar el saldo pendiente de la venta
+    //     $this->ventas[$ventaIndex]['saldo_pendiente'] = $this->ventas[$ventaIndex]['monto'] - array_sum(array_column($this->ventas[$ventaIndex]['cuentasSeleccionadas'], 'monto'));
+
+    //     // Confirmación de eliminación de la cuenta
+    //     $this->dispatch('showToast', ['type' => 'success', 'message' => 'La cuenta seleccionada ha sido eliminada exitosamente y el saldo pendiente se ha actualizado.']);
+    // }
 
     public function eliminarCuentaSeleccionada($ventaIndex, $cuentaIndex)
     {
@@ -499,18 +591,26 @@ class FormVentas extends Component
         $cuenta = $this->ventas[$ventaIndex]['cuentasSeleccionadas'][$cuentaIndex];
         $ventaTemporalId = $this->ventas[$ventaIndex]['venta_temporal_id'];
 
-        // Eliminar la cuenta de la tabla temporal
-        DB::table('venta_cuenta_temporal')
-            ->where('venta_temporal_id', $ventaTemporalId)
-            ->where('cuenta_id', $cuenta['cuenta_id'])
-            ->where('monto', $cuenta['monto'])
-            ->delete();
+        if ($cuenta['cuenta_id'] == 0) {
+            // Es un crédito, eliminar de la tabla de créditos temporales
+            DB::table('credito_temporal')
+                ->where('venta_temporal_id', $ventaTemporalId)
+                ->where('monto', $cuenta['monto']) // Asegura que eliminas el crédito correcto
+                ->delete();
+        } else {
+            // Eliminar la cuenta de la tabla temporal
+            DB::table('venta_cuenta_temporal')
+                ->where('venta_temporal_id', $ventaTemporalId)
+                ->where('cuenta_id', $cuenta['cuenta_id'])
+                ->where('monto', $cuenta['monto'])
+                ->delete();
+        }
 
         // Eliminar la cuenta del array de cuentas seleccionadas en Livewire
         unset($this->ventas[$ventaIndex]['cuentasSeleccionadas'][$cuentaIndex]);
         $this->ventas[$ventaIndex]['cuentasSeleccionadas'] = array_values($this->ventas[$ventaIndex]['cuentasSeleccionadas']); // Reindexar array
 
-        // Actualizar el saldo pendiente de la venta
+        // Actualizar el saldo pendiente de la venta después de eliminar el crédito
         $this->ventas[$ventaIndex]['saldo_pendiente'] = $this->ventas[$ventaIndex]['monto'] - array_sum(array_column($this->ventas[$ventaIndex]['cuentasSeleccionadas'], 'monto'));
 
         // Confirmación de eliminación de la cuenta
@@ -518,85 +618,6 @@ class FormVentas extends Component
     }
 
 
-    // public function cerrarVenta($index)
-    // {
-    //     // Obtener los detalles de ventas temporales
-    //     $detVentasTemporales = DetVentasTemporales::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->get();
-
-    //     if ($detVentasTemporales->isEmpty()) {
-    //         $this->dispatch('showToast', ['type' => 'error', 'message' => "La venta no tiene productos asociados."]);
-    //         return;
-    //     }
-
-    //     // Verificar que existan cuentas asignadas y que el saldo pendiente sea cero
-    //     $montoAsignado = array_sum(array_column($this->ventas[$index]['cuentasSeleccionadas'], 'monto'));
-    //     if ($montoAsignado < $this->ventas[$index]['monto']) {
-    //         $this->dispatch('showToast', ['type' => 'error', 'message' => "El saldo de la venta no ha sido cubierto completamente."]);
-    //         return;
-    //     }
-
-    //     DB::transaction(function () use ($index) {
-    //         // Crear la venta en la tabla principal
-    //         $venta = Venta::create([
-    //             'descripcion' => $this->ventas[$index]['descripcion'],
-    //             'monto_total' => $this->ventas[$index]['monto'],
-    //             'estado' => 'cerrada',
-    //             'user_id' => Auth::id(),
-    //             'fecha' => now(),
-    //             'venta_mayorista' => $this->ventas[$index]['venta_mayorista']
-    //         ]);
-
-    //         // Mover los productos de la tabla temporal a la definitiva
-    //         $detVentasTemporales = DetVentasTemporales::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->get();
-
-    //         $nuevosRegistrosDetVenta = $detVentasTemporales->map(function ($detVentaTemporal) use ($venta) {
-    //             return [
-    //                 'venta_id' => $venta->id,
-    //                 'producto_id' => $detVentaTemporal->producto_id,
-    //                 'cant' => $detVentaTemporal->cant,
-    //                 'precio_venta' => $detVentaTemporal->precio_venta,
-    //                 'det_compra_id' => $detVentaTemporal->det_compra_id,
-    //             ];
-    //         });
-
-    //         DetVenta::insert($nuevosRegistrosDetVenta->toArray());
-
-    //         // Registrar los movimientos de ingreso y transferir cuentas seleccionadas a la tabla definitiva
-    //         foreach ($this->ventas[$index]['cuentasSeleccionadas'] as $cuenta) {
-    //             Movimiento::create([
-    //                 'venta_id' => $venta->id,
-    //                 'cuenta_id' => $cuenta['cuenta_id'],
-    //                 'usuario_id' => Auth::id(),
-    //                 'tipo' => 'ingreso',
-    //                 'monto' => $cuenta['monto'],
-    //                 'fecha' => now(),
-    //             ]);
-
-    //             // Insertar en la tabla definitiva `cuenta_venta_definitiva`
-    //             DB::table('venta_cuenta')->insert([
-    //                 'venta_id' => $venta->id, // Ahora es la ID de la venta definitiva
-    //                 'cuenta_id' => $cuenta['cuenta_id'],
-    //                 'monto' => $cuenta['monto'],
-    //                 'created_at' => now(),
-    //                 'updated_at' => now(),
-    //             ]);
-    //         }
-
-    //         // Eliminar los registros temporales de las tablas involucradas
-    //         DetVentasTemporales::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
-    //         ProductoVentaTemporal::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
-    //         DB::table('venta_cuenta_temporal')->where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
-    //         VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])->delete();
-
-    //         // Descartar la venta de la variable de Livewire
-    //         unset($this->ventas[$index]);
-
-    //         // Actualizar el monto total
-    //         $this->montoTotal = array_sum(array_column($this->ventas, 'monto'));
-    //     });
-
-    //     return true;
-    // }
     public function cerrarVenta($index)
     {
         // Obtener los detalles de ventas temporales
@@ -661,6 +682,26 @@ class FormVentas extends Component
                 ]);
             }
 
+            // Transferir créditos temporales a la tabla definitiva si existen
+            $creditosTemporales = DB::table('credito_temporal')
+                ->where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])
+                ->get();
+
+            foreach ($creditosTemporales as $credito) {
+                DB::table('creditos')->insert([
+                    'deudor_id' => $credito->deudor_id,
+                    'responsable_id' => Auth::id(),
+                    'venta_id' => $venta->id,
+                    'tipo' => 'Venta',
+                    'monto' => $credito->monto,
+                    'des_monto' => $credito->monto,
+                    'fecha' => now(),
+                    'estado' => 'pendiente',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             // Si el saldo pendiente es negativo y la cuenta "EFECTIVO" fue utilizada, registrar un egreso
             if ($saldoPendiente < 0) {
                 foreach ($this->ventas[$index]['cuentasSeleccionadas'] as $cuenta) {
@@ -683,6 +724,7 @@ class FormVentas extends Component
             DetVentasTemporales::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
             ProductoVentaTemporal::where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
             DB::table('venta_cuenta_temporal')->where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
+            DB::table('credito_temporal')->where('venta_temporal_id', $this->ventas[$index]['venta_temporal_id'])->delete();
             VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])->delete();
 
             // Descartar la venta de la variable de Livewire

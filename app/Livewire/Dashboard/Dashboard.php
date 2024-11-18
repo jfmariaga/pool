@@ -31,13 +31,6 @@ class Dashboard extends Component
         $start = $this->startDate . ' 00:00:00'; // Inicio del día
         $end = $this->endDate . ' 23:59:59'; // Fin del día
 
-        // Consultar los datos según el rango de fechas
-        // $this->gastos_totales = DB::table('movimientos')
-        //     ->where('tipo', 'egreso')
-        //     ->where('compra_id', NULL)
-        //     ->where('venta_id', NULl)
-        //     ->whereBetween('fecha', [$start, $end])
-        //     ->sum('monto');
         $this->gastos_totales = DB::table('movimientos')
             ->where('tipo', 'egreso')
             ->where('compra_id', NULL)

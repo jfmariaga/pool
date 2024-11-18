@@ -34,4 +34,9 @@ class Credito extends Model
     {
         return $this->belongsTo(Venta::class);
     }
+
+    public function adjuntos()
+    {
+        return $this->hasMany(Adjunto::class);
+    }
 }

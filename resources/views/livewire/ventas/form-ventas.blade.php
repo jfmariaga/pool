@@ -41,21 +41,42 @@
 
                                             {{-- Selección de cuenta y monto para cada venta --}}
                                             @if (!empty($venta['productos']))
-                                                <div>
+                                                <div x-data="{ isCreditoSelected: false }">
+                                                    <!-- Selección de cuenta -->
                                                     <label for="cuenta">Seleccionar Cuenta</label>
                                                     <select wire:model="cuentasSeleccionadasIds.{{ $index }}"
-                                                        class="form-control">
+                                                        class="form-control"
+                                                        x-on:change="isCreditoSelected = ($event.target.value == 0)">
                                                         <option value="">Seleccione una cuenta</option>
                                                         @foreach ($cuentas as $cuenta)
-                                                            <option value="{{ $cuenta->id }}">{{ $cuenta->nombre }}
-                                                            </option>
+                                                            @if ($cuenta->id != 0)
+                                                                <!-- Omitir la cuenta de crédito si ya existe en la base de datos con ID 0 -->
+                                                                <option value="{{ $cuenta->id }}">
+                                                                    {{ $cuenta->nombre }}</option>
+                                                            @endif
                                                         @endforeach
+                                                        <option value="0">Crédito</option>
+                                                        <!-- Opción especial para Crédito -->
                                                     </select>
 
+                                                    <!-- Campo para el monto -->
                                                     <label for="montoCuenta">Monto</label>
                                                     <input type="number" wire:model="montosCuentas.{{ $index }}"
                                                         step="0.01" class="form-control"
                                                         placeholder="Ingrese el monto">
+
+                                                    <!-- Selección de usuario solo si "Crédito" está seleccionado -->
+                                                    <div x-show="isCreditoSelected" style="margin-top: 15px;">
+                                                        <label for="deudor_id">Seleccionar Deudor</label>
+                                                        <select wire:model="deudorIds.{{ $index }}"
+                                                            class="form-control">
+                                                            <option value="">Seleccione un usuario</option>
+                                                            @foreach ($usuarios as $usuario)
+                                                                <option value="{{ $usuario->id }}">{{ $usuario->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
 
                                                     <button class="btn btn-outline-primary btn_small mt-1"
                                                         wire:click="agregarCuenta({{ $index }})">
@@ -66,22 +87,25 @@
                                                 {{-- Lista de cuentas asignadas a la venta --}}
                                                 <hr>
                                                 <h6>Abonos al saldo:</h6>
-                                                <ul>
+                                                <ul class="list-group list-group-flush"
+                                                    style="background-color: transparent;">
                                                     @foreach ($venta['cuentasSeleccionadas'] as $cuentaIndex => $cuenta)
-                                                        <li>
-                                                            {{ $cuenta['nombre'] }}:
-                                                            ${{ number_format($cuenta['monto'], 2) }}
+                                                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                                                            style="background-color: transparent; border: none;">
+                                                            <span>
+                                                                <strong>{{ $cuenta['nombre'] }}:</strong>
+                                                                ${{ number_format($cuenta['monto'], 2) }}
+                                                            </span>
                                                             <button
                                                                 wire:click="eliminarCuentaSeleccionada({{ $index }}, {{ $cuentaIndex }})"
-                                                                class="btn btn-outline-danger btn_small">
+                                                                class="btn btn-outline-danger btn-sm"
+                                                                style="font-size: 0.85em;">
                                                                 Eliminar
                                                             </button>
                                                         </li>
                                                     @endforeach
                                                 </ul>
                                             @endif
-
-
                                             {{-- Configuración de venta mayorista --}}
                                             <hr>
                                             @if (array_sum(array_column($venta['productos'], 'cantidad')))

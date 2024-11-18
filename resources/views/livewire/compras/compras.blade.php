@@ -169,10 +169,10 @@
                         @this.cuenta_id = $('#cuenta_id').val()
                     })
                     $('#desde').change(() => {
-                        @this.desde = $('#proveedor_id').val()
+                        @this.desde = $('#desde').val()
                     })
                     $('#hasta').change(() => {
-                        @this.hasta = $('#cuenta_id').val()
+                        @this.hasta = $('#hasta').val()
                     })
                 },
 

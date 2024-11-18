@@ -9,8 +9,8 @@
                 <div class="content-header-right col-md-6 col-12">
                     <div class="btn-group float-md-right">
                         {{-- @can('crear credito') --}}
-                            <a href="javascript:" x-on:click="openForm()" id="btn_form_credito" class="btn btn-dark"> <i
-                                    class="la la-plus"></i> Nuevo Credito</a>
+                        <a href="javascript:" x-on:click="openForm()" id="btn_form_credito" class="btn btn-dark"> <i
+                                class="la la-plus"></i> Nuevo Credito</a>
                         {{-- @endcan --}}
                     </div>
                 </div>
@@ -69,6 +69,7 @@
                                 <th>Tipo</th>
                                 <th>Responsable</th>
                                 <th>Estado</th>
+                                <th>Acc</th>
                             </tr>
                         </x-table>
                     </div>
@@ -80,66 +81,52 @@
         </div>
     </div>
 
-    {{-- <x-modal id="credito" size="md">
-        <x-slot name="title">
-            <span>Comprobante del credito</span>
-        </x-slot>
-        <div>
-            <template x-if="( typeof m.usuario !== 'undefined' )">
-                <div class="col-md-12 p-2">
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Fecha:</b></div>
-                        <div x-text="m.fecha"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Creada por:</b></div>
-                        <div x-text="`${m.usuario.name} ${m.usuario.last_name}`"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Tipo:</b></div>
-                        <div x-text="m.tipo"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>credito:</b></div>
-                        <div x-text="m.compra_id ? 'Compra' : (m.venta_id ? 'Venta' : 'Manual')"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Cuenta:</b></div>
-                        <div x-text="m.cuenta.nombre"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Total:</b></div>
-                        <div x-text="__numberFormat( m.monto )"></div>
-                    </div>
-                    <div class="d-flex">
-                        <div class="w_150px"><b>Descripción:</b></div>
-                        <div x-text="m.descripcion"></div>
-                    </div>
-                </div>
-            </template>
-        </div>
-        <x-slot name="footer">
-            <span>
-                <button type="button" class="btn grey btn-outline-secondary" data-dismiss="modal">Cerrar</button>
-            </span>
-        </x-slot>
-    </x-modal> --}}
-
-
     @include('livewire.credito.form-credito')
+    @include('livewire.credito.form-abono')
 
     @script
         <script>
             Alpine.data('credito', () => ({
                 credito: [],
+                metodosPago: [],
                 m: [],
                 loading: true,
 
                 init() {
                     this.getCredito();
+
+                    window.addEventListener('openAbonoModal', () => {
+                        $('#form_abono').modal('show')
+                        this.cargarMetodosPago(); // Cargar los métodos de pago existentes para la edición
+                        // this.montoTotalVenta = parseFloat(@this.montoTotal.toFixed(2));
+
+                        // Cargar cuentas desde Livewire a Alpine
+                        this.cuentas = @json($cuentas) || [];
+                        if (!Array.isArray(this.cuentas)) {
+                            console.error("Error: `cuentas` no es un array.");
+                            this.cuentas = [];
+                        }
+
+                    });
+
+                    window.addEventListener('closeModal', () => {
+                        $('#form_abono').modal('hide');
+                        this.getCredito();
+                    });
+
+                    window.addEventListener('showToast', (data) => {
+                        const toastData = data.detail[0];
+                        toastRight(toastData.type, toastData.message);
+                    });
+
                     $('#deudor_id').change(() => {
                         val = $('#deudor_id').val()
                         @this.deudor_id = val
+                    })
+
+                    $('#deudor_id_filter').change(() => {
+                        val = $('#deudor_id_filter').val()
+                        @this.deudor_id_filter = val
                     })
 
                     $('#responsable_id').change(() => {
@@ -152,11 +139,6 @@
                         @this.estado_filter = val
                     })
 
-                    $('#deudor_id_filter').change(() => {
-                        val = $('#deudor_id_filter').val()
-                        @this.deudor_id_filter = val
-                    })
-
                     $('#estado').change(() => {
                         val = $('#estado').val();
                         @this.estado = val;
@@ -166,7 +148,6 @@
                 async getCredito() {
                     this.loading = true;
                     this.credito = await @this.getCredito();
-                    console.log(this.credito);
 
                     __destroyTable('#table_credito')
 
@@ -184,26 +165,31 @@
                     let tr = ``;
 
                     if (!is_update) {
-                        tr += `<tr id="credito${credito.id}">`;
+                        tr += `<tr id="credito_${credito.id}">`;
                     }
 
-                    // Lógica para determinar si es Compra, Venta o Manual
                     let tipocredito = 'Prestamo';
-                    let isEditable = true; // Variable para determinar si es editable
+                    let isEditable = true;
+                    console.log(credito);
+
+                    if (credito.venta_id ||credito.des_monto <= 0 || credito.abonos.length > 0) {
+                        isEditable = false;
+                    }
+
                     if (credito.venta_id) {
                         tipocredito = 'Venta';
-                        isEditable = false; // No editable si es una compra
                     }
 
                     // Desactivar botón de edición si no es manual
                     let editButton = !credito.block ? isEditable ?
                         `<x-buttonsm click="openForm('${credito.id}')"><i class="la la-edit"></i></x-buttonsm>` :
                         `<x-buttonsm click="creditoAuto()"><i class="la la-edit"></i></x-buttonsm>` : ``;
+
                     const adjuntoRuta = credito.adjuntos && credito.adjuntos.length > 0 ? credito
                         .adjuntos[0].ruta.replace(
                             'public/', 'storage/') : null;
                     tr += `
-                        <td>${ __formatDate( credito.fecha ) }</td>
+                        <td>${ __formatDate(credito.fecha)  }</td>
                         <td>${credito.deudor ? credito.deudor.name : 'Sin detalle'}</td>
                         <td>${__numberFormat( credito.monto )}</td>
                         <td>${tipocredito}</td>
@@ -211,13 +197,20 @@
                         <td>${credito.estado}</td>
                         <td>
                             <div class="d-flex">
-                                <x-buttonsm click="showcredito('${credito.id}')"><i class="la la-eye"></i> </x-buttonsm>
+                                <x-buttonsm click="abono('${credito.id}')"><i class="la la-eye"></i></x-buttonsm>
                                 ${editButton}
                                     <template x-if="!credito.compra_id && !credito.venta_id">
-                                                    <x-buttonsm click="deletecredito('${credito.id}')">
-                                                        <i class="la la-trash"></i>
-                                                    </x-buttonsm>
-                                </template>
+                                      <x-buttonsm click="deletecredito('${credito.id}')">
+                                         <i class="la la-trash"></i>
+                                      </x-buttonsm>
+                                    </template>
+                                ${
+                                        adjuntoRuta ? `
+                                                          <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
+                                                           <i class="la la-paperclip"></i>
+                                                          </a>
+                                                          ` : ``
+                                    }
                             </div>
                         </td>`;
 
@@ -233,28 +226,102 @@
                     alertClickCallback('Eliminar credito',
                         'Esta acción no se puede deshacer.', 'warning',
                         'Confirmar', 'Cancelar', async () => {
-                            const res = await @this.deletecredito(credito_id);
+                            const res = await @this.deleteCredito(credito_id);
                             if (res) {
                                 toastRight('success', 'credito eliminado con éxito');
                                 this.getCredito();
                             } else {
                                 toastRight('error',
-                                    'Este credito no se puede eliminar porque está vinculado a una compra o venta.'
+                                    'Este credito no se puede eliminar porque está vinculado a una venta o tienes abonos.'
                                 );
                             }
                         });
                 },
+                cargarMetodosPago() {
+                    this.metodosPago = [];
+                    @this.metodosPago.forEach((metodo) => {
+                        this.metodosPago.push({
+                            cuenta_id: metodo.cuenta_id,
+                            nombre: metodo.nombre,
+                            monto: parseFloat(metodo.monto) || 0
+                        });
+                    });
+                },
+
+                agregarMetodoPago() {
+                    this.metodosPago.push({
+                        cuenta_id: '',
+                        nombre: '',
+                        monto: 0
+                    });
+                    @this.set('metodosPago', this.metodosPago); // Sincroniza con Livewire
+                },
+
+                eliminarMetodoPago(index) {
+                    this.metodosPago.splice(index, 1);
+                    @this.set('metodosPago', this.metodosPago); // Sincroniza con Livewire cada vez que se elimina
+                },
+
+                actualizarNombreCuenta(index) {
+                    if (Array.isArray(this.cuentas)) {
+                        const cuentaSeleccionada = this.cuentas.find(cuenta => cuenta.id == this.metodosPago[index]
+                            .cuenta_id);
+                        if (cuentaSeleccionada) {
+                            this.metodosPago[index].nombre = cuentaSeleccionada.nombre;
+                            this.metodosPago[index].cuenta_id = cuentaSeleccionada
+                                .id; // Asegura que el ID también esté correcto
+                            console.log("Métodos de pago actualizados:", this.metodosPago);
+                            @this.set('metodosPago', this.metodosPago); // Forzamos la actualización de Livewire
+                        } else {
+                            console.error("Error: Cuenta seleccionada no encontrada.");
+                        }
+                    } else {
+                        console.error("Error: `cuentas` no es un array.");
+                    }
+                },
+
+                validarYGuardar() {
+                    @this.call('validarYGuardar');
+                },
 
                 creditoAuto() {
                     alertMessage('Lo sentimos!',
-                        'No puede editar este credito ya que fue generado de manera automática por el sistema, si necesita editar su valor, debe editar la compra o venta que generó el credito',
+                        'No puede editar este credito ya que fue generado de manera automática por el sistema o tiene abonos, si necesita editar su valor, debe editar la venta que generó el credito',
                         'warning', true)
                 },
 
+
+
+                openForm(credito_id = null) {
+                    let credito_edit = this.credito.find((credito) => credito.id == credito_id);
+
+                    credito_edit = credito_edit ?? {};
+
+                    @this.credito_id = credito_edit ? credito_edit.id : null;
+                    @this.deudor_id = credito_edit ? credito_edit.deudor_id : null;
+                    @this.tipo = credito_edit ? credito_edit.tipo : null;
+                    @this.monto = credito_edit ? __numberFormat(credito_edit.monto, true) : null;
+                    @this.fecha = credito_edit ? credito_edit.fecha : null;
+                    @this.estado = credito_edit ? credito_edit.estado : null;
+                    @this.adjunto = (credito_edit.adjuntos && Array.isArray(credito_edit.adjuntos) &&
+                            credito_edit.adjuntos.length > 0) ?
+                        credito_edit.adjuntos[0]['ruta'] :
+                        null;
+
+
+                    setTimeout(() => {
+                        const deudorElement = document.getElementById('deudor_id');
+                        if (deudorElement) {
+                            $(deudorElement).val(@this.deudor_id).trigger('change');
+                        }
+                    }, 300);
+
+                    $('#form_credito').modal('show');
+                },
+
                 async saveFront() {
-                    const is_update = @this.credito_id ? true :
-                        false;
-                    const credito = await @this.save();
+                    const is_update = @this.credito_id ? true : false;
+                    const credito = await @this.saveCredito();
 
                     if (credito) {
                         this.addcreditoTable(credito, is_update);
@@ -271,51 +338,14 @@
                             this.credito.push(credito);
                             toastRight('success', 'credito registrado con éxito');
                         }
+                    } else {
+                        toastRight('error',
+                            'No se puede editar el crédito porque ya tiene abonos o pertenece a una venta.');
                     }
                 },
 
-
-                openForm(credito_id = null) {
-                    let credito_edit = this.credito.find((credito) => credito.id == credito_id);
-
-                    credito_edit = credito_edit ?? {};
-
-                    @this.credito_id = credito_edit ? credito_edit.id : null;
-                    @this.cuenta_id = credito_edit ? credito_edit.cuenta_id : null;
-                    @this.tipo = credito_edit ? credito_edit.tipo : null;
-                    @this.valor = credito_edit ? __numberFormat(credito_edit.monto, true) : null;
-                    @this.fecha = credito_edit ? credito_edit.fecha : null;
-                    @this.descripcion = credito_edit ? credito_edit.descripcion : null;
-                    @this.adjunto = (credito_edit.adjuntos && Array.isArray(credito_edit.adjuntos) &&
-                            credito_edit.adjuntos.length > 0) ?
-                        credito_edit.adjuntos[0]['ruta'] :
-                        null;
-
-
-                    setTimeout(() => {
-                        const cuentaElement = document.getElementById('cuenta_id');
-                        if (cuentaElement) {
-                            $(cuentaElement).val(@this.cuenta_id).trigger('change');
-                        }
-
-                        const tipoElement = document.getElementById('tipo');
-                        if (tipoElement) {
-                            $(tipoElement).val(@this.tipo).trigger('change');
-                        }
-
-                        const fechaElement = document.getElementById('fecha');
-                        if (fechaElement) {
-                            fechaElement.value = @this.fecha;
-                        }
-                    }, 300);
-
-                    $('#form_credito').modal('show');
-                },
-
-                showcredito(credito_id) {
-                    this.m = this.credito.find((credito) => credito.id == credito_id)
-                    console.log(this.m)
-                    $('#credito').modal('show')
+                abono(credito_id) {
+                    @this.getAbono(credito_id);
                 }
             }));
         </script>

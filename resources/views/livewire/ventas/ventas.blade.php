@@ -30,6 +30,7 @@
                         <div x-show="!loading">
                             <x-table id="table" extra="d-none">
                                 <tr>
+                                    <th class="d-none">COD</th>
                                     <th>Fecha</th>
                                     <th>Registrado por</th>
                                     <th>Cliente</th>
@@ -246,15 +247,27 @@
                                     <option value="{{ $cuenta->id }}">{{ $cuenta->nombre }}</option>
                                 @endforeach
                             </select>
+                            <template x-if="metodo.cuenta_id == 0">
+                                <select class="form-control mr-2" x-model="metodo.deudor_id"
+                                    @change="actualizarNombreDeudor(index)">
+                                    <option value="">Seleccione un deudor</option>
+                                    <template x-for="usuario in usuarios" :key="usuario.id">
+                                        <option :value="usuario.id" :selected="usuario.id == metodo.deudor_id"
+                                            x-text="usuario.name"></option>
+                                    </template>
+                                </select>
+                            </template>
                             <input type="number" class="form-control mr-2" placeholder="Monto"
                                 x-model="metodo.monto"
                                 @input="$dispatch('metodo-monto-actualizado', { index: index, monto: metodo.monto })" />
                             <button type="button" class="btn btn-outline-danger btn_small"
-                                @click="eliminarMetodoPago(index)">Eliminar</button>
+                                @click="eliminarMetodoPago(index)">Eliminar
+                            </button>
                         </div>
                     </template>
                     <button type="button" class="btn btn-outline-primary btn_small mt-2"
-                        @click="agregarMetodoPago">Agregar Método de Pago</button>
+                        @click="agregarMetodoPago">Agregar Método de Pago
+                    </button>
                 </div>
             </div>
 
@@ -263,7 +276,7 @@
             </x-slot>
         </x-modal>
 
-        @script
+        {{-- @script
             <script>
                 Alpine.data('dataalpine', () => ({
                     loading: true,
@@ -286,8 +299,6 @@
                                 console.error("Error: `cuentas` no es un array.");
                                 this.cuentas = [];
                             }
-
-                            console.log("Cuentas cargadas:", this.cuentas);
                         });
 
                         window.addEventListener('closeModal', () => {
@@ -343,13 +354,13 @@
                         ${
                                         i.block ? `` :
                                         `
-                                    @can('editar ventas')
-                                        <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
-                                    @endcan
-                                    @can('eliminar ventas')
-                                        <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
-                                    @endcan
-                                             `
+                                                @can('editar ventas')
+                                                    <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
+                                                @endcan
+                                                @can('eliminar ventas')
+                                                    <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                                @endcan
+                                                         `
                                     }
                     </div>
                 </td>
@@ -432,6 +443,199 @@
                     }
                 }));
             </script>
-        @endscript
+        @endscript --}}
+        @script
+            <script>
+                Alpine.data('dataalpine', () => ({
+                    loading: true,
+                    compras: {},
+                    comprobante: {},
+                    metodosPago: [],
+                    cuentas: [], // Inicialización de cuentas
+                    montoTotalVenta: 0, // Monto total de la venta (actualizado desde Livewire)
+                    usuarios: [], // Lista de usuarios activos para seleccionar deudores
 
+                    init() {
+                        this.getTabla();
+                        window.addEventListener('openEditModal', () => {
+                            $('#editVentaModal').modal('show');
+                            this.cargarMetodosPago(); // Cargar los métodos de pago existentes para la edición
+                            this.montoTotalVenta = parseFloat(@this.montoTotal.toFixed(2));
+
+                            // Cargar usuarios y cuentas desde Livewire a Alpine
+                            this.usuarios = @json($usuarios) || [];
+                            this.cuentas = @json($cuentas) || [];
+                            if (!Array.isArray(this.cuentas)) {
+                                console.error("Error: `cuentas` no es un array.");
+                                this.cuentas = [];
+                            }
+                        });
+
+                        window.addEventListener('closeModal', () => {
+                            $('#editVentaModal').modal('hide');
+                            this.getTabla();
+                            toastRight('success', 'Venta actualizada con éxito.');
+                        });
+
+                        window.addEventListener('showToast', (data) => {
+                            const toastData = data.detail[0];
+                            toastRight(toastData.type, toastData.message);
+                        });
+
+                        $('#producto_id').change(() => {
+                            @this.producto_id = $('#producto_id').val();
+                        });
+                    },
+
+                    actualizarNombreDeudor(index) {
+                        const deudorSeleccionado = this.usuarios.find(usuario => usuario.id == this.metodosPago[index]
+                            .deudor_id);
+                        if (deudorSeleccionado) {
+                            this.metodosPago[index].deudor_nombre = deudorSeleccionado.name;
+                        } else {
+                            this.metodosPago[index].deudor_nombre = 'Sin deudor asignado';
+                        }
+                    },
+
+                    // Computed property para verificar la consistencia de los métodos de pago
+                    get isMetodoPagoValido() {
+                        const totalMetodosPago = parseFloat(
+                            this.metodosPago.reduce((sum, metodo) => sum + parseFloat(metodo.monto || 0), 0)
+                            .toFixed(2)
+                        );
+                        const montoTotalVenta = parseFloat(this.montoTotalVenta.toFixed(2));
+                        return totalMetodosPago === montoTotalVenta;
+                    },
+
+                    async getTabla() {
+                        this.loading = true;
+                        this.compras = await @this.getTabla();
+                        __destroyTable('#table');
+                        this.compras.map(async (i) => {
+                            await this.addItem(i);
+                        });
+                        setTimeout(() => {
+                            __resetTable('#table');
+                            this.loading = false;
+                        }, 500);
+                    },
+
+                    async addItem(i) {
+                        const ventaMayorista = i.venta_mayorista ? 'Mayorista' : 'Normal';
+                        let metodosPagoText = i.metodoPago;
+                        let tr = `<tr id="tr_${i.id}">
+                        <td class="d-none">${i.fecha}</td>
+                        <td>${ __formatDateTime(i.fecha) }</td>
+                        <td>${i.usuario.name} ${i.usuario.last_name}</td>
+                        <td>${i.descripcion || ''}</td>
+                        <td>${metodosPagoText ? metodosPagoText : 'Crédito'}</td>
+                        <td>${ventaMayorista}</td>
+                        <td>${__numberFormat(i.monto_total)}</td>
+                        <td>
+                            <div class="d-flex">
+                                <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
+                                ${
+                                    i.block ? `` :
+                                    `
+                                                                                        @can('editar ventas')
+                                                                                            <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
+                                                                                        @endcan
+                                                                                        @can('eliminar ventas')
+                                                                                            <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                                                                        @endcan
+                                                                                    `
+                                }
+                            </div>
+                        </td>
+                    </tr>`;
+
+                        $('#body_table').prepend(tr);
+                        return true;
+                    },
+
+                    cargarMetodosPago() {
+                        this.metodosPago = [];
+                        @this.metodosPago.forEach((metodo) => {
+                            this.metodosPago.push({
+                                cuenta_id: metodo.cuenta_id,
+                                deudor_id: metodo.deudor_id || '',
+                                deudor_nombre: metodo.deudor_nombre || '',
+                                nombre: metodo.nombre,
+                                monto: parseFloat(metodo.monto) || 0
+                            });
+                        });
+                    },
+
+                    agregarMetodoPago() {
+                        this.metodosPago.push({
+                            cuenta_id: '',
+                            deudor_id: '',
+                            deudor_nombre: '',
+                            nombre: '',
+                            monto: 0
+                        });
+                        @this.set('metodosPago', this.metodosPago); // Sincroniza con Livewire
+                    },
+
+                    eliminarMetodoPago(index) {
+                        this.metodosPago.splice(index, 1);
+                        @this.set('metodosPago', this.metodosPago); // Sincroniza con Livewire cada vez que se elimina
+                    },
+
+                    actualizarNombreCuenta(index) {
+                        const cuentaSeleccionada = this.cuentas.find(cuenta => cuenta.id == this.metodosPago[index]
+                            .cuenta_id);
+                        if (cuentaSeleccionada) {
+                            this.metodosPago[index].nombre = cuentaSeleccionada.nombre;
+                        } else if (this.metodosPago[index].cuenta_id == 0) {
+                            // Si es crédito, habilitar deudor
+                            this.metodosPago[index].nombre = 'Crédito';
+                            this.metodosPago[index].deudor_nombre = 'Seleccione un deudor';
+                        }
+                        @this.set('metodosPago', this.metodosPago);
+                    },
+
+                    actualizarNombreDeudor(index) {
+                        const deudorSeleccionado = this.usuarios.find(
+                            (usuario) => usuario.id == this.metodosPago[index].deudor_id
+                        );
+                        if (deudorSeleccionado) {
+                            this.metodosPago[index].deudor_nombre = deudorSeleccionado.name;
+                        } else {
+                            this.metodosPago[index].deudor_nombre = 'Sin deudor asignado';
+                        }
+                        @this.set('metodosPago', this.metodosPago);
+                    },
+
+                    confirmEdit(id) {
+                        @this.editVenta(id);
+                    },
+
+                    validarYGuardar() {
+                        @this.call('validarYGuardar');
+                    },
+
+                    async confirmDelete(id) {
+                        alertClickCallback('Eliminar Venta',
+                            'Al eliminar esta venta, los productos regresarán al inventario y los saldos se ajustarán.',
+                            'warning', 'Confirmar', 'Cancelar', async () => {
+                                const res = await @this.call('deleteVenta', id);
+                                if (res) {
+                                    $(`#tr_${id}`).addClass('d-none');
+                                    toastRight('success', 'Venta eliminada con éxito.');
+                                } else {
+                                    toastRight('error', 'Error al eliminar la venta.');
+                                }
+                            });
+                    },
+
+                    showComprobante(compra_id) {
+                        this.comprobante = this.compras.find((i) => i.id == compra_id);
+                        this.comprobante.metodosPago = this.comprobante.metodosPago || [];
+                        this.comprobante.totalEgresos = this.comprobante.totalEgresos || 0;
+                        $('#comprobante').modal('show');
+                    }
+                }));
+            </script>
+        @endscript
     </div>

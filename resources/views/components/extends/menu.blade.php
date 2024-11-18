@@ -13,14 +13,14 @@
                 @can('ver ventas')
                     <li class="nav-item {{ Route::is('ventas') ? 'active' : '' }}">
                         <a href="{{ route('ventas') }}" onclick="blockPage()"><i class="fa-solid fa-cash-register"></i>
-                            <span class="menu-title" data-i18n="nav.support_documentation.main">Ventas</span>
+                            <span class="menu-title" data-i18n="nav.support_documentation.main">Historial Ventas</span>
                         </a>
                     </li>
                 @endcan
                 @can('crear ventas')
                     <li class="nav-item {{ Route::is('form-ventas') ? 'active' : '' }}">
                         <a href="{{ route('form-ventas') }}" onclick="blockPage()"><i class="fa-solid fa-cash-register"></i>
-                            <span class="menu-title" data-i18n="nav.support_documentation.main">Venta</span>
+                            <span class="menu-title" data-i18n="nav.support_documentation.main">Gestor de Ventas</span>
                         </a>
                     </li>
                 @endcan
@@ -92,7 +92,7 @@
                                 </a>
                             </li>
                         @endcan
-                        @can('ver cuentas')
+                        @can('ver creditos')
                         <li class="{{ Route::is('creditos') ? 'active' : '' }}">
                             <a href="{{ route('creditos') }}" onclick="blockPage()">
                                 <i class="fa-regular fa-credit-card"></i>

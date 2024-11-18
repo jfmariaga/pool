@@ -43,8 +43,8 @@ class Venta extends Model
             ->withPivot('monto');
     }
 
-    public function credito()
+    public function creditos()
     {
-        return $this->hasOne(Credito::class);
+        return $this->hasMany(Credito::class, 'venta_id', 'id');
     }
 }

@@ -136,6 +136,16 @@
                             </div>
                         @endforeach
                     </div>
+
+                    <h5 class="text-uppercase text-primary mt-3">Créditos</h5>
+                    <div class="form-group">
+                        @foreach ($allPermissions->whereIn('name', ['ver creditos', 'crear creditos', 'editar creditos', 'eliminar creditos']) as $permission)
+                            <div class="form-check">
+                                <input type="checkbox" wire:model="selectedPermissions" value="{{ $permission->name }}" class="form-check-input" id="permiso_{{ $permission->id }}">
+                                <label class="form-check-label" for="permiso_{{ $permission->id }}">{{ $permission->name }}</label>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
