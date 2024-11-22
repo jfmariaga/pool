@@ -36,7 +36,7 @@ class Movimientos extends Component
 
     public function mount()
     {
-        $this->cuentas = Cuenta::where('status', 1)->where('id','<>', 0)->get();
+        $this->cuentas = Cuenta::where('status', 1)->where('id', '<>', 0)->get();
         $this->usuarios = User::where('status', 1)->get();
         $this->fecha   = now()->format('Y-m-d');
 
@@ -115,7 +115,8 @@ class Movimientos extends Component
             $cuentaDestino->saldo += $valorLimpio;
             $cuentaDestino->save();
 
-            $movimiento = Movimiento::create([
+            // Crear el movimiento de egreso (cuenta origen)
+            $movimientoEgreso = Movimiento::create([
                 'cuenta_id'   => $this->cuenta_id,
                 'tipo'        => 'egreso',
                 'monto'       => $valorLimpio,
@@ -124,25 +125,29 @@ class Movimientos extends Component
                 'usuario_id'  => Auth::id(),
             ]);
 
-            $this->adjuntar($movimiento->id);
-
-            $movimiento =   Movimiento::create([
-                'cuenta_id'   => $this->cuenta_destino_id,
-                'tipo'        => 'ingreso',
-                'monto'       => $valorLimpio,
-                'fecha'       => $newDate,
-                'descripcion' => 'Transferencia desde cuenta ' . $cuentaOrigen->nombre,
-                'usuario_id'  => Auth::id(),
+            // Crear el movimiento de ingreso (cuenta destino)
+            $movimientoIngreso = Movimiento::create([
+                'cuenta_id'        => $this->cuenta_destino_id,
+                'tipo'             => 'ingreso',
+                'monto'            => $valorLimpio,
+                'fecha'            => $newDate,
+                'descripcion'      => 'Transferencia desde cuenta ' . $cuentaOrigen->nombre,
+                'usuario_id'       => Auth::id(),
+                'transferencia_id' => $movimientoEgreso->id, // Vincular al egreso
             ]);
 
-            $this->adjuntar($movimiento->id);
+            // Actualizar el egreso con el transferencia_id
+            $movimientoEgreso->transferencia_id = $movimientoIngreso->id;
+            $movimientoEgreso->save();
 
+            $this->adjuntar($movimientoEgreso->id);
+            $this->adjuntar($movimientoIngreso->id);
 
-            if ($movimiento) {
-                $movimiento->load(['cuenta', 'usuario']);
+            if ($movimientoIngreso) {
+                $movimientoIngreso->load(['cuenta', 'usuario']);
                 $this->resetForm();
                 $this->mount();
-                return $movimiento->toArray();
+                return $movimientoIngreso->toArray();
             } else {
                 return false;
             }
@@ -252,37 +257,79 @@ class Movimientos extends Component
         $this->resetValidation();
     }
 
+
     public function deleteMovimiento($id)
     {
         $movimiento = Movimiento::find($id);
 
-        if ($movimiento->compra_id === null && $movimiento->venta_id === null) {
-            $cuenta = Cuenta::find($movimiento->cuenta_id);
+        // Validar que el movimiento no esté asociado a compras o ventas
+        if ($movimiento && $movimiento->compra_id === null && $movimiento->venta_id === null) {
 
-            if ($movimiento->tipo == 'ingreso') {
-                $cuenta->saldo -= $movimiento->monto;
-            } elseif ($movimiento->tipo == 'egreso') {
-                $cuenta->saldo += $movimiento->monto;
-            }
+            // Obtener los movimientos relacionados (solo si es transferencia)
+            $movimientosRelacionados = Movimiento::where('id', $movimiento->transferencia_id)
+                ->orWhere('transferencia_id', $movimiento->id)
+                ->get();
 
-            $cuenta->save();
+            // Si no es una transferencia (sin movimientos relacionados)
+            if ($movimientosRelacionados->isEmpty()) {
+                // Ajustar el saldo de la cuenta correspondiente
+                $cuenta = Cuenta::find($movimiento->cuenta_id);
 
-            if ($movimiento->adjuntos->isNotEmpty()) {
-                foreach ($movimiento->adjuntos as $adjunto) {
-                    if (Storage::exists($adjunto->ruta)) {
-                        Storage::delete($adjunto->ruta);
+                if ($movimiento->tipo == 'ingreso') {
+                    $cuenta->saldo -= $movimiento->monto;
+                } elseif ($movimiento->tipo == 'egreso') {
+                    $cuenta->saldo += $movimiento->monto;
+                }
+
+                $cuenta->save();
+
+                // Eliminar adjuntos si existen
+                if ($movimiento->adjuntos->isNotEmpty()) {
+                    foreach ($movimiento->adjuntos as $adjunto) {
+                        if (Storage::exists($adjunto->ruta)) {
+                            Storage::delete($adjunto->ruta);
+                        }
+                        $adjunto->delete();
                     }
-                    $adjunto->delete();
+                }
+
+                $movimiento->delete();
+            } else {
+                // Si es transferencia, eliminar los movimientos relacionados
+                foreach ($movimientosRelacionados as $mov) {
+                    $cuenta = Cuenta::find($mov->cuenta_id);
+
+                    if ($mov->tipo == 'ingreso') {
+                        $cuenta->saldo -= $mov->monto;
+                    } elseif ($mov->tipo == 'egreso') {
+                        $cuenta->saldo += $mov->monto;
+                    }
+
+                    $cuenta->save();
+
+                    // Eliminar adjuntos si existen
+                    if ($mov->adjuntos->isNotEmpty()) {
+                        foreach ($mov->adjuntos as $adjunto) {
+                            if (Storage::exists($adjunto->ruta)) {
+                                Storage::delete($adjunto->ruta);
+                            }
+                            $adjunto->delete();
+                        }
+                    }
+
+                    $mov->delete();
                 }
             }
 
-            $movimiento->delete();
-            $this->getMovimientos();
+            $this->getMovimientos(); // Actualizar los movimientos en la vista
+
             return true;
-        } else {
-            return false;
         }
+
+        // Si el movimiento está relacionado con una compra o venta, no se permite eliminar
+        return false;
     }
+
 
     public function resetForm()
     {
