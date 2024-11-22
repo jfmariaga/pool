@@ -48,7 +48,7 @@ class CierreCaja extends Component
         return $cierres;
     }
 
-    // obtiene la info del ultimo cierre y prepara todo para un nuevo cierre
+    // version calculada, presisa con los movimientos, pero un poco más lenta
     public function getUltCierre()
     {
 
@@ -69,7 +69,7 @@ class CierreCaja extends Component
             $ult_movimiento     = $ult_cierre['ult_movimiento'];
 
             // si ya había un ultimo cierre, el inicio del nuevo es el fin del ultimo
-            $this->total_inicio = $ult_cierre['total_cierre'];
+            // $this->total_inicio = $ult_cierre['total_cierre'];
         }
 
         // consultamos los movimientos generados después del ultimo cierre
@@ -81,19 +81,28 @@ class CierreCaja extends Component
 
             // organizamos la matriz de las cuentas
             foreach ($cuentas as $cuenta) {
+
+                // calculamos el inicio y cierre en base al ultimo movimieto
+                $ingresos_cuenta    = Movimiento::where('cuenta_id', $cuenta['id'])->where('tipo', 'ingreso')->where('id', '<=', $ult_movimiento)->sum('monto');
+                $egresos_cuenta     = Movimiento::where('cuenta_id', $cuenta['id'])->where('tipo', 'egreso')->where('id', '<=', $ult_movimiento)->sum('monto');
+                $inicio_cuenta      = $ingresos_cuenta - $egresos_cuenta;
+
+                $this->total_inicio += $inicio_cuenta;
+
                 $this->det_cuentas[$cuenta['id']]['nombre']  = $cuenta['nombre']; // con lo que empezó
-                $this->det_cuentas[$cuenta['id']]['inicio']  = 0; // con lo que empezó
+                // $this->det_cuentas[$cuenta['id']]['inicio']  = 0; // con lo que empezó
+                $this->det_cuentas[$cuenta['id']]['inicio']  = $inicio_cuenta; // con lo que empezó
                 $this->det_cuentas[$cuenta['id']]['ingreso'] = 0; // lo que le ingresó
                 $this->det_cuentas[$cuenta['id']]['egreso']  = 0; // lo que salió
                 $this->det_cuentas[$cuenta['id']]['cierre']  = 0; // con lo que terminó
             }
 
             // el inicio de la cuenta es el total cierre del ultimo cierre de esa cuenta
-            if (isset($ult_cierre['detalles']) && $ult_cierre['detalles']) {
-                foreach ($ult_cierre['detalles'] as $det_cierre) {
-                    $this->det_cuentas[$det_cierre['cuenta_id']]['inicio'] = $det_cierre['total_cierre'];
-                }
-            }
+            // if (isset($ult_cierre['detalles']) && $ult_cierre['detalles']) {
+            //     foreach ($ult_cierre['detalles'] as $det_cierre) {
+            //         $this->det_cuentas[$det_cierre['cuenta_id']]['inicio'] = $det_cierre['total_cierre'];
+            //     }
+            // }
 
             // organizamos los movimientos por cuentas
             foreach ($movimientos as $movimiento) {
