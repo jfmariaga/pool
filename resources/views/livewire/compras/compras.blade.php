@@ -137,6 +137,7 @@
                                         </td>
                                         <td
                                              x-text="__numberFormat( item.precio_compra  * item.stock_compra )">
+                                             
                                         </td>
                                     </tr>
                                 </template>
