@@ -27,6 +27,47 @@
 
                 <div class="content-body">
                     <div class="card">
+                        <div class="row card-body">
+                            <div class="col-md-12 mb-1">
+                                <b>Filtros</b>
+                            </div>
+                            <div class="col-md-4 d-flex">
+                                <div class="">
+                                    {{-- <span x-text="$wire.desde"></span> --}}
+                                    <x-input type="date" model="$wire.desde" id="desde" class="form-control"
+                                        label="Desde"></x-input>
+                                </div>
+                                <div class="ml-2">
+                                    <x-input type="date" model="$wire.hasta" id="hasta" class="form-control"
+                                        label="Hasta"></x-input>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <x-select model="$wire.usuario_id" id="usuario_id" label="Filtrar por vendedor">
+                                    <option value="0">Todos...</option>
+                                    @foreach ($usuarios as $i)
+                                        <option value="{{ $i->id }}">{{ $i->name }} {{ $i->last_name }}
+                                        </option>
+                                    @endforeach
+                                </x-select>
+                            </div>
+                            {{-- <div class="col-mb-3">
+                                <label for="metodo_pago" class="form-label">Método de Pago</label>
+                                <select wire:model="metodo_pago" class="form-control" id="metodo_pago">
+                                    <option value="">Todos</option>
+                                    <option value="EFECTIVO LOCAL">EFECTIVO LOCAL</option>
+                                    <option value="EFECTIVO MANUEL">EFECTIVO MANUEL</option>
+                                    <option value="BANCOLOMBIA (SAMIR)">BANCOLOMBIA (SAMIR)</option>
+                                    <option value="Pago Combinado">Pago Combinado</option>
+                                    <option value="Crédito">Crédito</option>
+                                </select>
+                            </div> --}}
+
+                            <div class="col-md-1">
+                                <button type="button" x-on:click="getTabla()" class="btn btn-outline-dark"
+                                    style="margin-top:19px;">Filtrar</button>
+                            </div>
+                        </div>
                         <div x-show="!loading">
                             <x-table id="table" extra="d-none">
                                 <tr>
@@ -48,7 +89,7 @@
                 </div>
             </div>
         </div>
-
+        {{-- Comprobande de venta --}}
         <x-modal id="comprobante" class="invoice-modal">
             <x-slot name="header">
                 <x-slot name="title">
@@ -93,12 +134,18 @@
                                 <template x-for="(item, key) in comprobante.det_ventas || []" :key="key">
                                     <tr>
                                         <td x-text="item.producto?.nombre || 'N/A'"></td>
-                                        <td
+                                        {{-- <td
                                             x-text="comprobante.venta_mayorista ? __numberFormat(item.producto?.precio_mayorista || 0) : __numberFormat(item.precio_venta || 0)">
+                                        </td> --}}
+                                        <td
+                                            x-text="__numberFormat(item.precio_venta || 0)">
                                         </td>
                                         <td x-text="item.cant || '0'"></td>
-                                        <td
+                                        {{-- <td
                                             x-text="comprobante.venta_mayorista ? __numberFormat((item.producto?.precio_mayorista || 0) * (item.cant || 0)) : __numberFormat((item.precio_venta || 0) * (item.cant || 0))">
+                                        </td> --}}
+                                        <td
+                                            x-text="__numberFormat((item.precio_venta || 0) * (item.cant || 0))">
                                         </td>
                                     </tr>
                                 </template>
@@ -276,174 +323,6 @@
             </x-slot>
         </x-modal>
 
-        {{-- @script
-            <script>
-                Alpine.data('dataalpine', () => ({
-                    loading: true,
-                    compras: {},
-                    comprobante: {},
-                    metodosPago: [],
-                    cuentas: [], // Inicialización de cuentas
-                    montoTotalVenta: 0, // Monto total de la venta (actualizado desde Livewire)
-
-                    init() {
-                        this.getTabla();
-                        window.addEventListener('openEditModal', () => {
-                            $('#editVentaModal').modal('show');
-                            this.cargarMetodosPago(); // Cargar los métodos de pago existentes para la edición
-                            this.montoTotalVenta = parseFloat(@this.montoTotal.toFixed(2));
-
-                            // Cargar cuentas desde Livewire a Alpine
-                            this.cuentas = @json($cuentas) || [];
-                            if (!Array.isArray(this.cuentas)) {
-                                console.error("Error: `cuentas` no es un array.");
-                                this.cuentas = [];
-                            }
-                        });
-
-                        window.addEventListener('closeModal', () => {
-                            $('#editVentaModal').modal('hide');
-                            this.getTabla();
-                            toastRight('success', 'Venta actualizada con éxito.');
-                        });
-
-                        window.addEventListener('showToast', (data) => {
-                            const toastData = data.detail[0];
-                            toastRight(toastData.type, toastData.message);
-                        });
-
-                        $('#producto_id').change(() => {
-                            @this.producto_id = $('#producto_id').val();
-                        });
-                    },
-
-                    // Computed property para verificar la consistencia de los métodos de pago
-                    get isMetodoPagoValido() {
-                        const totalMetodosPago = parseFloat(this.metodosPago.reduce((sum, metodo) => sum +
-                            parseFloat(metodo.monto || 0), 0).toFixed(2));
-                        const montoTotalVenta = parseFloat(this.montoTotalVenta.toFixed(2));
-                        return totalMetodosPago === montoTotalVenta;
-                    },
-
-                    async getTabla() {
-                        this.loading = true;
-                        this.compras = await @this.getTabla();
-                        __destroyTable('#table');
-                        this.compras.map(async (i) => {
-                            await this.addItem(i);
-                        });
-                        setTimeout(() => {
-                            __resetTable('#table');
-                            this.loading = false;
-                        }, 500);
-                    },
-
-                    async addItem(i) {
-                        const ventaMayorista = i.venta_mayorista ? 'Mayorista' : 'Normal';
-                        let metodosPagoText = i.metodoPago;
-                        let tr = `<tr id="tr_${i.id}">
-                <td>${ __formatDateTime(i.fecha) }</td>
-                <td>${i.usuario.name} ${i.usuario.last_name}</td>
-                <td>${i.descripcion || ''}</td>
-                <td>${metodosPagoText}</td>
-                <td>${ventaMayorista}</td>
-                <td>${__numberFormat(i.monto_total)}</td>
-                <td>
-                    <div class="d-flex">
-                        <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                        ${
-                                        i.block ? `` :
-                                        `
-                                                @can('editar ventas')
-                                                    <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
-                                                @endcan
-                                                @can('eliminar ventas')
-                                                    <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
-                                                @endcan
-                                                         `
-                                    }
-                    </div>
-                </td>
-            </tr>`;
-
-                        $('#body_table').prepend(tr);
-                        return true;
-                    },
-
-                    cargarMetodosPago() {
-                        this.metodosPago = [];
-                        @this.metodosPago.forEach((metodo) => {
-                            this.metodosPago.push({
-                                cuenta_id: metodo.cuenta_id,
-                                nombre: metodo.nombre,
-                                monto: parseFloat(metodo.monto) || 0
-                            });
-                        });
-                    },
-
-                    agregarMetodoPago() {
-                        this.metodosPago.push({
-                            cuenta_id: '',
-                            nombre: '',
-                            monto: 0
-                        });
-                        @this.set('metodosPago', this.metodosPago); // Sincroniza con Livewire
-                    },
-
-                    eliminarMetodoPago(index) {
-                        this.metodosPago.splice(index, 1);
-                        @this.set('metodosPago', this.metodosPago); // Sincroniza con Livewire cada vez que se elimina
-                    },
-
-                    actualizarNombreCuenta(index) {
-                        if (Array.isArray(this.cuentas)) {
-                            const cuentaSeleccionada = this.cuentas.find(cuenta => cuenta.id == this.metodosPago[index]
-                                .cuenta_id);
-                            if (cuentaSeleccionada) {
-                                this.metodosPago[index].nombre = cuentaSeleccionada.nombre;
-                                this.metodosPago[index].cuenta_id = cuentaSeleccionada
-                                    .id; // Asegura que el ID también esté correcto
-                                console.log("Métodos de pago actualizados:", this.metodosPago);
-                                @this.set('metodosPago', this.metodosPago); // Forzamos la actualización de Livewire
-                            } else {
-                                console.error("Error: Cuenta seleccionada no encontrada.");
-                            }
-                        } else {
-                            console.error("Error: `cuentas` no es un array.");
-                        }
-                    },
-
-                    confirmEdit(id) {
-                        @this.editVenta(id);
-                    },
-
-                    validarYGuardar() {
-                        @this.call('validarYGuardar');
-                    },
-
-                    async confirmDelete(id) {
-                        alertClickCallback('Eliminar Venta',
-                            'Al eliminar esta venta, los productos regresarán al inventario y los saldos se ajustarán.',
-                            'warning', 'Confirmar', 'Cancelar', async () => {
-                                const res = await @this.call('deleteVenta', id);
-                                if (res) {
-                                    $(`#tr_${id}`).addClass('d-none');
-                                    toastRight('success', 'Venta eliminada con éxito.');
-                                } else {
-                                    toastRight('error', 'Error al eliminar la venta.');
-                                }
-                            });
-                    },
-
-                    showComprobante(compra_id) {
-                        this.comprobante = this.compras.find((i) => i.id == compra_id);
-                        this.comprobante.metodosPago = this.comprobante.metodosPago || [];
-                        this.comprobante.totalEgresos = this.comprobante.totalEgresos || 0;
-                        $('#comprobante').modal('show');
-                    }
-                }));
-            </script>
-        @endscript --}}
         @script
             <script>
                 Alpine.data('dataalpine', () => ({
@@ -457,6 +336,17 @@
 
                     init() {
                         this.getTabla();
+                        $('#usuario_id').change(() => {
+                            @this.usuario_id = $('#usuario_id').val()
+                        })
+
+                        $('#desde').change(() => {
+                            @this.desde = $('#desde').val()
+                        })
+                        $('#hasta').change(() => {
+                            @this.hasta = $('#hasta').val()
+                        })
+
                         window.addEventListener('openEditModal', () => {
                             $('#editVentaModal').modal('show');
                             this.cargarMetodosPago(); // Cargar los métodos de pago existentes para la edición
@@ -532,22 +422,22 @@
                         <td>${ventaMayorista}</td>
                         <td>${__numberFormat(i.monto_total)}</td>
                         <td>
-                            <div class="d-flex">
-                                <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                ${
-                                    i.block ? `` :
-                                    `
-                                                                                        @can('editar ventas')
-                                                                                            <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
-                                                                                        @endcan
-                                                                                        @can('eliminar ventas')
-                                                                                            <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
-                                                                                        @endcan
-                                                                                    `
-                                }
-                            </div>
-                        </td>
-                    </tr>`;
+                                <div class="d-flex">
+                                    <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
+                                    ${
+                                        i.block ? `` :
+                                        `
+                                                                                                                                                                    @can('editar ventas')
+                                                                                                                                                                        <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
+                                                                                                                                                                    @endcan
+                                                                                                                                                                    @can('eliminar ventas')
+                                                                                                                                                                        <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                                                                                                                                                    @endcan
+                                                                                                                                                                `
+                                    }
+                                </div>
+                            </td>
+                        </tr>`;
 
                         $('#body_table').prepend(tr);
                         return true;

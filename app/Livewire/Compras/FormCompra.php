@@ -42,7 +42,9 @@ class FormCompra extends Component
             if (isset($compra['id']) && $compra['id']) {
                 $this->proveedor_id = $compra['proveedor_id'];
                 $this->cuenta_id    = $compra['cuenta_id'];
-                $this->url      = $compra['adjuntos'][0]['ruta'];
+                //$this->url      = $compra['adjuntos'][0]['ruta'];
+                $this->url = $compra['adjuntos'][0]['ruta'] ?? null;
+
                 // dd($this->url);
 
                 foreach ($compra['detalles'] as $det) {
