@@ -66,16 +66,37 @@
                                                         placeholder="Ingrese el monto">
 
                                                     <!-- Selección de usuario solo si "Crédito" está seleccionado -->
-                                                    <div x-show="isCreditoSelected" style="margin-top: 15px;">
-                                                        <label for="deudor_id">Seleccionar Deudor</label>
+                                                    {{-- <div x-show="isCreditoSelected" style="margin-top: 15px;">
+                                                        <label for="deudor_id">Seleccionar Cliente</label>
                                                         <select wire:model="deudorIds.{{ $index }}"
                                                             class="form-control">
-                                                            <option value="">Seleccione un usuario</option>
-                                                            @foreach ($usuarios as $usuario)
-                                                                <option value="{{ $usuario->id }}">{{ $usuario->name }}
+                                                            <option value="">Seleccione un Cliente</option>
+                                                            @foreach ($clientes as $cliente)
+                                                                <option value="{{ $cliente->id }}">{{ $cliente->nombre }}-{{ $cliente->documento }}
                                                                 </option>
                                                             @endforeach
                                                         </select>
+                                                    </div> --}}
+
+                                                    <div x-show="isCreditoSelected" style="margin-top: 15px;">
+                                                        <label for="deudor_id">Seleccionar Cliente</label>
+
+                                                        <div class="d-flex">
+                                                            <select wire:model="deudorIds.{{ $index }}"
+                                                                class="form-control">
+                                                                <option value="">Seleccione un cliente</option>
+                                                                @foreach ($clientes as $cliente)
+                                                                    <option value="{{ $cliente->id }}">
+                                                                        {{ $cliente->nombre }}
+                                                                    </option>
+                                                                @endforeach
+                                                            </select>
+
+                                                            <button type="button" class="btn btn-outline-primary ml-1"
+                                                                wire:click="abrirModalCliente({{ $index }})">
+                                                                Nuevo
+                                                            </button>
+                                                        </div>
                                                     </div>
 
                                                     <button class="btn btn-outline-primary btn_small mt-1"
@@ -263,6 +284,43 @@
         </x-slot>
     </x-modal>
 
+    <x-modal id="modalCliente" wire:ignore.self>
+        <x-slot name="title">
+            Nuevo cliente
+        </x-slot>
+
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <label>Nombre</label>
+                    <input type="text" wire:model.defer="cliente_nombre" class="form-control"
+                        placeholder="Nombre del cliente">
+                    @error('cliente_nombre')
+                        <span class="text-danger">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="col-md-12 mt-1">
+                    <label>Documento</label>
+                    <input type="text" wire:model.defer="cliente_documento" class="form-control"
+                        placeholder="Documento">
+                    @error('cliente_documento')
+                        <span class="text-danger">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+        </div>
+
+        <x-slot name="footer">
+            <button type="button" class="btn btn-outline-secondary" wire:click="cerrarModalCliente">
+                Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" wire:click="guardarCliente">
+                Guardar cliente
+            </button>
+        </x-slot>
+    </x-modal>
+
     @script
         <script>
             Livewire.on('showToast', (data) => {
@@ -270,6 +328,14 @@
                 toastRight(toastData.type, toastData.message);
             });
 
+            window.addEventListener('openModalCliente', () => {
+                $('#modalCliente').modal('show');
+            });
+
+            window.addEventListener('closeModalCliente', () => {
+                $('#modalCliente').modal('hide');
+            });
+            
             Alpine.data('dataalpine', () => ({
 
                 list_productos: [], // original

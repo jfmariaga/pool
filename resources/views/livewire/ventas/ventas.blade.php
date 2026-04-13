@@ -112,7 +112,9 @@
                             <div><strong>Venta No.:</strong> <span x-text="comprobante.id || 'N/A'"></span></div>
                         </div>
                         <div class="d-flex justify-content-between mt-2">
-                            <div><strong>Cliente:</strong> <span x-text="comprobante.descripcion || 'N/A'"></span></div>
+                            {{-- <div><strong>Cliente:</strong> <span x-text="comprobante.descripcion || 'N/A'"></span></div> --}}
+                            <div><strong>Cliente:</strong> <span
+                                    x-text="comprobante.clienteNombre || comprobante.descripcion || 'N/A'"></span></div>
                             <div><strong>Vendedor:</strong>
                                 <span
                                     x-text="(comprobante.usuario ? `${comprobante.usuario.name || ''} ${comprobante.usuario.last_name || ''}` : 'N/A')"></span>
@@ -137,15 +139,13 @@
                                         {{-- <td
                                             x-text="comprobante.venta_mayorista ? __numberFormat(item.producto?.precio_mayorista || 0) : __numberFormat(item.precio_venta || 0)">
                                         </td> --}}
-                                        <td
-                                            x-text="__numberFormat(item.precio_venta || 0)">
+                                        <td x-text="__numberFormat(item.precio_venta || 0)">
                                         </td>
                                         <td x-text="item.cant || '0'"></td>
                                         {{-- <td
                                             x-text="comprobante.venta_mayorista ? __numberFormat((item.producto?.precio_mayorista || 0) * (item.cant || 0)) : __numberFormat((item.precio_venta || 0) * (item.cant || 0))">
                                         </td> --}}
-                                        <td
-                                            x-text="__numberFormat((item.precio_venta || 0) * (item.cant || 0))">
+                                        <td x-text="__numberFormat((item.precio_venta || 0) * (item.cant || 0))">
                                         </td>
                                     </tr>
                                 </template>
@@ -298,9 +298,13 @@
                                 <select class="form-control mr-2" x-model="metodo.deudor_id"
                                     @change="actualizarNombreDeudor(index)">
                                     <option value="">Seleccione un deudor</option>
-                                    <template x-for="usuario in usuarios" :key="usuario.id">
+                                    {{-- <template x-for="usuario in usuarios" :key="usuario.id">
                                         <option :value="usuario.id" :selected="usuario.id == metodo.deudor_id"
                                             x-text="usuario.name"></option>
+                                    </template> --}}
+                                    <template x-for="cliente in clientes" :key="cliente.id">
+                                        <option :value="cliente.id" :selected="cliente.id == metodo.deudor_id"
+                                            x-text="cliente.nombre"></option>
                                     </template>
                                 </select>
                             </template>
@@ -332,7 +336,8 @@
                     metodosPago: [],
                     cuentas: [], // Inicialización de cuentas
                     montoTotalVenta: 0, // Monto total de la venta (actualizado desde Livewire)
-                    usuarios: [], // Lista de usuarios activos para seleccionar deudores
+                    // usuarios: [], // Lista de usuarios activos para seleccionar deudores
+                    clientes: [],
 
                     init() {
                         this.getTabla();
@@ -353,7 +358,8 @@
                             this.montoTotalVenta = parseFloat(@this.montoTotal.toFixed(2));
 
                             // Cargar usuarios y cuentas desde Livewire a Alpine
-                            this.usuarios = @json($usuarios) || [];
+                            // this.usuarios = @json($usuarios) || [];
+                            this.clientes = @json($clientes) || [];
                             this.cuentas = @json($cuentas) || [];
                             if (!Array.isArray(this.cuentas)) {
                                 console.error("Error: `cuentas` no es un array.");
@@ -377,15 +383,15 @@
                         });
                     },
 
-                    actualizarNombreDeudor(index) {
-                        const deudorSeleccionado = this.usuarios.find(usuario => usuario.id == this.metodosPago[index]
-                            .deudor_id);
-                        if (deudorSeleccionado) {
-                            this.metodosPago[index].deudor_nombre = deudorSeleccionado.name;
-                        } else {
-                            this.metodosPago[index].deudor_nombre = 'Sin deudor asignado';
-                        }
-                    },
+                    // actualizarNombreDeudor(index) {
+                    //     const deudorSeleccionado = this.usuarios.find(usuario => usuario.id == this.metodosPago[index]
+                    //         .deudor_id);
+                    //     if (deudorSeleccionado) {
+                    //         this.metodosPago[index].deudor_nombre = deudorSeleccionado.name;
+                    //     } else {
+                    //         this.metodosPago[index].deudor_nombre = 'Sin deudor asignado';
+                    //     }
+                    // },
 
                     // Computed property para verificar la consistencia de los métodos de pago
                     get isMetodoPagoValido() {
@@ -410,34 +416,36 @@
                         }, 500);
                     },
 
+                    
                     async addItem(i) {
                         const ventaMayorista = i.venta_mayorista ? 'Mayorista' : 'Normal';
                         let metodosPagoText = i.metodoPago;
+
                         let tr = `<tr id="tr_${i.id}">
-                        <td class="d-none">${i.fecha}</td>
-                        <td>${ __formatDateTime(i.fecha) }</td>
-                        <td>${i.usuario.name} ${i.usuario.last_name}</td>
-                        <td>${i.descripcion || ''}</td>
-                        <td>${metodosPagoText ? metodosPagoText : 'Crédito'}</td>
-                        <td>${ventaMayorista}</td>
-                        <td>${__numberFormat(i.monto_total)}</td>
-                        <td>
-                                <div class="d-flex">
-                                    <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
-                                    ${
-                                        i.block ? `` :
-                                        `
-                                                                                                                                                                    @can('editar ventas')
-                                                                                                                                                                        <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
-                                                                                                                                                                    @endcan
-                                                                                                                                                                    @can('eliminar ventas')
-                                                                                                                                                                        <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
-                                                                                                                                                                    @endcan
-                                                                                                                                                                `
-                                    }
-                                </div>
-                            </td>
-                        </tr>`;
+                                <td class="d-none">${i.fecha}</td>
+                                <td>${__formatDateTime(i.fecha)}</td>
+                                <td>${i.usuario.name} ${i.usuario.last_name}</td>
+                                <td>${i.clienteNombre || ''}</td>
+                                <td>${metodosPagoText ? metodosPagoText : 'Crédito'}</td>
+                                <td>${ventaMayorista}</td>
+                                <td>${__numberFormat(i.monto_total)}</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <x-buttonsm click="showComprobante('${i.id}')"><i class="la la-eye"></i> </x-buttonsm>
+                                        ${
+                                            i.block ? `` :
+                                            `
+                                                                                @can('editar ventas')
+                                                                                    <x-buttonsm click="confirmEdit(${i.id})" color="primary"><i class="la la-edit"></i></x-buttonsm>
+                                                                                @endcan
+                                                                                @can('eliminar ventas')
+                                                                                    <x-buttonsm click="confirmDelete('${i.id}')" color="danger"><i class="la la-trash"></i></x-buttonsm>
+                                                                                @endcan
+                                                                                `
+                                        }
+                                    </div>
+                                </td>
+                            </tr>`;
 
                         $('#body_table').prepend(tr);
                         return true;
@@ -485,18 +493,30 @@
                         @this.set('metodosPago', this.metodosPago);
                     },
 
+                    // actualizarNombreDeudor(index) {
+                    //     const deudorSeleccionado = this.usuarios.find(
+                    //         (usuario) => usuario.id == this.metodosPago[index].deudor_id
+                    //     );
+                    //     if (deudorSeleccionado) {
+                    //         this.metodosPago[index].deudor_nombre = deudorSeleccionado.name;
+                    //     } else {
+                    //         this.metodosPago[index].deudor_nombre = 'Sin deudor asignado';
+                    //     }
+                    //     @this.set('metodosPago', this.metodosPago);
+                    // },
+
                     actualizarNombreDeudor(index) {
-                        const deudorSeleccionado = this.usuarios.find(
-                            (usuario) => usuario.id == this.metodosPago[index].deudor_id
-                        );
+                        const deudorSeleccionado = this.clientes.find(cliente => cliente.id == this.metodosPago[index]
+                            .deudor_id);
                         if (deudorSeleccionado) {
-                            this.metodosPago[index].deudor_nombre = deudorSeleccionado.name;
+                            this.metodosPago[index].deudor_nombre = deudorSeleccionado.nombre;
+                            this.metodosPago[index].nombre = 'Crédito - ' + deudorSeleccionado.nombre;
                         } else {
                             this.metodosPago[index].deudor_nombre = 'Sin deudor asignado';
+                            this.metodosPago[index].nombre = 'Crédito';
                         }
                         @this.set('metodosPago', this.metodosPago);
                     },
-
                     confirmEdit(id) {
                         @this.editVenta(id);
                     },

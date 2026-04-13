@@ -4,6 +4,7 @@ namespace App\Livewire\Credito;
 
 use App\Models\Abono;
 use App\Models\Adjunto;
+use App\Models\Cliente;
 use App\Models\Credito as ModelsCredito;
 use App\Models\Cuenta;
 use App\Models\Movimiento;
@@ -24,6 +25,7 @@ class Credito extends Component
 
 
     public $creditos = [];
+    public $clientes = [];
     public $usuarios = [];
     public $deudor_id, $responsable_id, $monto, $fecha, $estado = 'pendiente', $credito_id;
     public $abonos = [], $abono_monto, $abono_fecha;
@@ -34,6 +36,11 @@ class Credito extends Component
     public $cuentas;
     public $totalAbonos;
     public $metodosPago = [];
+    public $totalCarteraPendiente = 0;
+    public $totalClienteFiltrado = 0;
+    public $nombreClienteFiltrado = null;
+    public $totalResponsableFiltrado = 0;
+    public $nombreResponsableFiltrado = null;
 
     public $listeners = [
         'metodo-monto-actualizado' => 'actualizarMontoMetodoPago',
@@ -41,12 +48,86 @@ class Credito extends Component
 
     public function mount()
     {
+        $this->clientes = Cliente::all();
         $this->usuarios = User::where('status', 1)->get();
         $this->cuentas = Cuenta::where('id', '<>', 0)->get();
         $this->metodosPago = [];
         if (!$this->desde && !$this->hasta) {
             $this->desde = date('Y-m-d', strtotime(date('Y-m-d') . ' - 1 month'));
             $this->hasta = date('Y-m-d');
+        }
+        $this->calcularTotalCarteraPendiente();
+        $this->actualizarTarjetasFiltros();
+    }
+
+    public function calcularTotalCarteraPendiente()
+    {
+        $creditos = ModelsCredito::query()
+            ->withSum('abonos', 'monto')
+            ->get();
+
+        $this->totalCarteraPendiente = $creditos->sum(function ($credito) {
+            $monto = (float) $credito->monto;
+            $abonado = (float) ($credito->abonos_sum_monto ?? 0);
+            $pendiente = $monto - $abonado;
+
+            return $pendiente > 0 ? $pendiente : 0;
+        });
+    }
+
+    private function aplicarFiltrosComunesTarjetas($query)
+    {
+        if ($this->desde && $this->hasta) {
+            $query->whereBetween('fecha', [$this->desde, $this->hasta]);
+        }
+
+        if ($this->estado_filter && $this->estado_filter !== '0') {
+            $query->where('estado', $this->estado_filter);
+        }
+
+        return $query;
+    }
+
+    private function sumarSaldoPendiente($query)
+    {
+        $creditos = $query->withSum('abonos', 'monto')->get();
+
+        return (float) $creditos->sum(function ($credito) {
+            $monto = (float) $credito->monto;
+            $abonado = (float) ($credito->abonos_sum_monto ?? 0);
+            $pendiente = $monto - $abonado;
+
+            return $pendiente > 0 ? $pendiente : 0;
+        });
+    }
+
+    public function actualizarTarjetasFiltros()
+    {
+        $this->totalClienteFiltrado = 0;
+        $this->nombreClienteFiltrado = null;
+        $this->totalResponsableFiltrado = 0;
+        $this->nombreResponsableFiltrado = null;
+
+        if ($this->deudor_id_filter && $this->deudor_id_filter !== '0') {
+            $queryCliente = ModelsCredito::query();
+            $this->aplicarFiltrosComunesTarjetas($queryCliente);
+            $queryCliente->where('deudor_id', $this->deudor_id_filter);
+
+            $this->totalClienteFiltrado = $this->sumarSaldoPendiente($queryCliente);
+
+            $cliente = \App\Models\Cliente::find($this->deudor_id_filter);
+            $this->nombreClienteFiltrado = $cliente ? $cliente->nombre : 'Cliente';
+        }
+
+        if ($this->responsable_id && $this->responsable_id !== '0') {
+            $queryResponsable = ModelsCredito::query();
+            $this->aplicarFiltrosComunesTarjetas($queryResponsable);
+            $queryResponsable->where('responsable_id', $this->responsable_id);
+
+            $this->totalResponsableFiltrado = $this->sumarSaldoPendiente($queryResponsable);
+
+            $responsable = \App\Models\User::find($this->responsable_id);
+            $this->nombreResponsableFiltrado = $responsable ? $responsable->name : 'Responsable';
         }
     }
 
@@ -110,6 +191,8 @@ class Credito extends Component
             $this->metodosPago = [];
         });
 
+        $this->calcularTotalCarteraPendiente();
+        $this->actualizarTarjetasFiltros();
         $this->dispatch('showToast', ['type' => 'success', 'message' => 'Abono realizado correctamente.']);
         $this->dispatch('closeModal');
     }
@@ -134,6 +217,7 @@ class Credito extends Component
         if ($this->estado_filter && $this->estado_filter !== '0') {
             $creditos->where('estado', $this->estado_filter);
         }
+
         return $creditos->get();
     }
 
@@ -178,6 +262,8 @@ class Credito extends Component
             $credito->load(['deudor', 'responsable', 'abonos', 'ventas', 'adjuntos']);
             $this->resetForm();
             $this->mount();
+            $this->calcularTotalCarteraPendiente();
+            $this->actualizarTarjetasFiltros();
             return $credito->toArray();
         } else {
             return false;
@@ -198,10 +284,13 @@ class Credito extends Component
         $this->monto = (float) $credito->monto;
         // $this->des_monto = $credito->des_monto;
         $this->des_monto = (float) $credito->des_monto;
-        $this->deudor = $credito->deudor->name;
+        $this->deudor = $credito->deudor->nombre;
         $this->responsable = $credito->responsable->name;
         $this->fecha = $credito->fecha;
         $this->abonos = $credito->abonos;
+
+        $this->calcularTotalCarteraPendiente();
+        $this->actualizarTarjetasFiltros();
         $this->dispatch('openAbonoModal');
 
         // dd($credito);
@@ -270,6 +359,8 @@ class Credito extends Component
 
             $credito->delete();
             $this->getcredito();
+            $this->calcularTotalCarteraPendiente();
+            $this->actualizarTarjetasFiltros();
             return true;
         } else {
             return false;
