@@ -96,5 +96,13 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'crear roles'])->syncRoles([$roleSuperAdmin]);
         Permission::create(['name' => 'editar roles'])->syncRoles([$roleSuperAdmin]);
         Permission::create(['name' => 'eliminar roles'])->syncRoles([$roleSuperAdmin]);
+
+        // Crear permisos para Préstamos (módulo retroventa + personales)
+        Permission::create(['name' => 'ver prestamos'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'crear prestamos'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'editar prestamos'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'eliminar prestamos'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'ver prestamo-inversionistas'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'gestionar prestamo-inversionistas'])->syncRoles([$roleSuperAdmin]);
     }
 }

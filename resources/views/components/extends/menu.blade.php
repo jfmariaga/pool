@@ -100,6 +100,14 @@
                             </a>
                         </li>
                         @endcan
+                        @can('ver prestamos')
+                            <li class="{{ Route::is('prestamos') ? 'active' : '' }}">
+                                <a href="{{ route('prestamos') }}" onclick="blockPage()">
+                                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                                    <span class="menu-item" data-i18n="nav.support_documentation.main">Préstamos</span>
+                                </a>
+                            </li>
+                        @endcan
                         @can('ver movimientos')
                             <li class="{{ Route::is('movimientos') ? 'active' : '' }}">
                                 <a href="{{ route('movimientos') }}" onclick="blockPage()">

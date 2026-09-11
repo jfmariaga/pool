@@ -119,3 +119,108 @@ input {
   border: solid 1px var(--color-grey) !important;
 
 }
+
+/* ============ Ajustes de tema (claro/oscuro) ============ */
+
+/* filas pares de tablas: igualar al fondo de la tarjeta */
+.table-striped tbody tr:nth-of-type(even) {
+  background-color: var(--bg-white) !important;
+}
+.table tbody td,
+.table thead th,
+.table-bordered,
+.table-bordered th,
+.table-bordered td {
+  border-color: var(--color-grey) !important;
+}
+.table.table-sm td,
+.table.table-sm th { padding: .4rem .5rem; }
+
+/* texto atenuado legible en oscuro */
+.text-muted,
+small.text-muted,
+.text-muted * { color: var(--color-input) !important; }
+
+/* separadores */
+hr { border-top-color: var(--color-grey) !important; }
+
+/* pestañas (nav-tabs) */
+.nav-tabs { border-bottom: 1px solid var(--color-grey) !important; }
+.nav-tabs .nav-link {
+  color: var(--color-input) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px 8px 0 0;
+}
+.nav-tabs .nav-link:hover { border-color: var(--color-grey) !important; }
+.nav-tabs .nav-link.active {
+  color: var(--color-text) !important;
+  background: var(--bg-white) !important;
+  border-color: var(--color-grey) var(--color-grey) var(--bg-white) !important;
+}
+
+/* modales, menús flotantes, dropdowns */
+.modal-content { background: var(--bg-white) !important; }
+.dropdown-menu { background: var(--bg-white) !important; border-color: var(--color-grey) !important; }
+.dropdown-item { color: var(--color-text) !important; }
+.dropdown-item:hover { background: var(--bg-input) !important; }
+
+/* badges neutros */
+.badge-light,
+.badge-secondary { background: var(--bg-input) !important; color: var(--color-text) !important; }
+
+/* filas resaltadas de tablas (contextual) legibles en claro y oscuro */
+.table-warning, .table-warning > td, .table-warning > th,
+tr.table-warning td, tr.table-warning th {
+  background-color: rgba(240, 173, 78, .22) !important;
+  color: var(--color-text) !important;
+}
+.table-danger, .table-danger > td, .table-danger > th,
+tr.table-danger td, tr.table-danger th {
+  background-color: rgba(217, 83, 79, .20) !important;
+  color: var(--color-text) !important;
+}
+.table-success, .table-success > td, .table-success > th,
+tr.table-success td, tr.table-success th {
+  background-color: rgba(92, 184, 92, .18) !important;
+  color: var(--color-text) !important;
+}
+.table-info, .table-info > td, .table-info > th,
+tr.table-info td, tr.table-info th {
+  background-color: rgba(91, 192, 222, .18) !important;
+  color: var(--color-text) !important;
+}
+
+/* paginación de DataTables */
+.dataTables_wrapper .paginate_button,
+.page-link {
+  background: var(--bg-white) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-grey) !important;
+}
+.dataTables_wrapper .paginate_button.current,
+.page-item.active .page-link {
+  background: var(--color-input) !important;
+  color: var(--color-contraste) !important;
+  border-color: var(--color-input) !important;
+}
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter { color: var(--color-text) !important; }
+
+/* evitar que las tablas anchas desborden la tarjeta */
+.card-dashboard,
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.card-dashboard > table { min-width: 100%; }
+
+/* tarjetas KPI del módulo de préstamos */
+.kpi-card {
+  background: var(--bg-white);
+  border: 1px solid var(--color-grey);
+  border-radius: 12px;
+  padding: 14px 16px;
+  height: 100%;
+}
+.kpi-card .kpi-label { color: var(--color-input); font-size: .78rem; text-transform: uppercase; letter-spacing: .03em; }
+.kpi-card .kpi-value { color: var(--color-text); font-size: 1.35rem; font-weight: 700; line-height: 1.2; margin-top: 4px; }
+.kpi-card .kpi-sub { color: var(--color-input); font-size: .8rem; margin-top: 2px; }

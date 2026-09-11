@@ -27,6 +27,7 @@ use App\Livewire\Ventas\FormVentas;
 use App\Livewire\CierreCaja\CierreCaja;
 use App\Livewire\Credito\Credito;
 use App\Livewire\Creditos;
+use App\Livewire\Prestamos\Prestamos;
 use App\Livewire\Roles\Roles;
 
 // Route::get('/pruebas', PruebaVelocidad::class);
@@ -50,6 +51,7 @@ Route::middleware([AuthGuard::class])->group(function () {
     Route::get('/form-ajuste-inventario/{ajuste_id?}', FormAjusteInventario::class)->name('form-ajuste-inventario')->middleware('permission:crear ajuste-inventario');
     Route::get('/movimientos', Movimientos::class)->name('movimientos')->middleware('permission:ver movimientos');
     Route::get('/creditos', Credito::class)->name('creditos')->middleware('permission:ver creditos');
+    Route::get('/prestamos', Prestamos::class)->name('prestamos')->middleware('permission:ver prestamos');
     Route::get('/roles', Roles::class)->name('roles')->middleware('permission:ver roles');
 });
 
