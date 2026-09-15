@@ -9,13 +9,18 @@ class Credito extends Model
 {
     use HasFactory;
 
-    protected $table   = 'creditos' ;
+    protected $table   = 'creditos';
     protected $guarded = [];
     public $timestamps = false;
     // Relación con el modelo User (Deudor)
     public function deudor()
     {
-        return $this->belongsTo(User::class, 'deudor_id');
+        return $this->belongsTo(Cliente::class, 'deudor_id');
+    }
+
+    public function cliente()
+    {
+        return $this->belongsTo(Cliente::class, 'deudor_id');
     }
 
     // Relación con el modelo User (Responsable)

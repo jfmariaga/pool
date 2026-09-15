@@ -11,8 +11,6 @@ class Venta extends Model
     protected $guarded = [];
     public $timestamps = false;
 
-
-
     // public function productos()
     // {
     //     return $this->hasMany(VentaProducto::class);

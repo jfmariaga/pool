@@ -3,6 +3,7 @@
 namespace App\Livewire\Ventas;
 
 use App\Models\Categoria;
+use App\Models\Cliente;
 use App\Models\Credito;
 use App\Models\Cuenta;
 use App\Models\DetCompra;
@@ -32,7 +33,10 @@ class Ventas extends Component
     public $totalEgresos;
     public $usuarios;
     public $creditos;
-
+    public $desde, $hasta;
+    public $usuario_id;
+    public string|null $metodo_pago = null;
+    public $clientes;
 
     public $listeners = [
         'metodo-monto-actualizado' => 'actualizarMontoMetodoPago',
@@ -47,12 +51,18 @@ class Ventas extends Component
         $this->montoTotal = 0;
         $this->cuentas = Cuenta::all();
         $this->metodosPago = [];
+        $this->clientes = Cliente::all();
         $this->usuarios = User::where('status', 1)->get();
         $this->creditos = Credito::where('venta_id', $this->ventaId)
-            ->select('creditos.id as credito_id', 'monto', 'deudor_id', 'users.name as deudor_nombre')
-            ->join('users', 'users.id', '=', 'creditos.deudor_id')
+            ->select('creditos.id as credito_id', 'monto', 'deudor_id', 'clientes.nombre as deudor_nombre')
+            ->join('clientes', 'clientes.id', '=', 'creditos.deudor_id')
             ->get()
             ->toArray();
+
+        if (!$this->desde && !$this->hasta) {
+            $this->desde = date('Y-m-d', strtotime(date('Y-m-d') . ' - 1 month'));
+            $this->hasta = date('Y-m-d');
+        }
     }
 
     public function actualizarMontoMetodoPago($index, $monto)
@@ -70,19 +80,31 @@ class Ventas extends Component
     {
         $this->skipRender();
 
-        $ventas = Venta::with([
+        $query = Venta::with([
             'detVentas.producto',
             'usuario',
-            'cuenta',        // Relación para la cuenta directa
-            'cuentas',       // Relación para pagos combinados
+            'cuenta',
+            'cuentas',
+            'creditos.cliente',
             'movimientos' => function ($query) {
-                $query->where('tipo', 'egreso'); // Filtrar solo los egresos
+                $query->where('tipo', 'egreso');
             }
-        ])->get()->map(function ($venta) {
+        ]);
+
+        if ($this->desde && $this->hasta) {
+            $desde = \Carbon\Carbon::parse($this->desde)->startOfDay();
+            $hasta = \Carbon\Carbon::parse($this->hasta)->endOfDay();
+            $query->whereBetween('fecha', [$desde, $hasta]);
+        }
+
+        if ($this->usuario_id) {
+            $query->where('user_id', $this->usuario_id);
+        }
+
+        $ventas = $query->get()->filter(function ($venta) {
 
             $metodosPago = collect();
 
-            // Agregar cuenta directa si existe (casos antiguos)
             if ($venta->cuenta) {
                 $metodosPago->push([
                     'nombre' => $venta->cuenta->nombre,
@@ -90,7 +112,6 @@ class Ventas extends Component
                 ]);
             }
 
-            // Agregar cuentas combinadas de la relación pivote si existen
             if ($venta->cuentas && $venta->cuentas->count() > 0) {
                 foreach ($venta->cuentas as $cuenta) {
                     $metodosPago->push([
@@ -100,27 +121,48 @@ class Ventas extends Component
                 }
             }
 
-            // Definir el campo `metodoPago` basado en los métodos de pago disponibles
             if ($metodosPago->count() > 1) {
                 $venta->metodoPago = 'Pago Combinado';
             } elseif ($metodosPago->count() == 1) {
                 $venta->metodoPago = $metodosPago->first()['nombre'];
             } else {
-                $venta->metodoPago = 'N/A';
+                // Aquí es crédito
+                $venta->metodoPago = 'Crédito';
             }
 
-            // Asigna los métodos de pago detallados para el comprobante
-            $venta->metodosPago = $metodosPago->toArray();
+            $clienteNombre = $venta->descripcion;
 
-            // Calcular el total de egresos (si existen)
+            if ($venta->creditos && $venta->creditos->count() > 0) {
+                $primerCredito = $venta->creditos->first();
+                $clienteNombre = $primerCredito->cliente->nombre ?? $venta->descripcion;
+            }
+
+            $venta->clienteNombre = $clienteNombre;
+            $venta->metodosPago = $metodosPago->toArray();
             $venta->totalEgresos = $venta->movimientos->sum('monto');
 
-            return $venta;
-        })->toArray();
+            if ($this->metodo_pago) {
+                if ($this->metodo_pago === 'Pago Combinado') {
+                    return $metodosPago->count() > 1;
+                }
+
+                if ($this->metodo_pago === 'Crédito') {
+                    return $metodosPago->count() === 0;
+                }
+                // if ($this->metodo_pago === 'Crédito') {
+                //     return $venta->cuenta_id == 0;
+                //     dd($ventas);
+                // }
+
+
+                return $metodosPago->pluck('nombre')->contains($this->metodo_pago);
+            }
+
+            return true;
+        })->values()->toArray();
 
         return $ventas;
     }
-
 
     public function agregarProducto()
     {
@@ -201,116 +243,6 @@ class Ventas extends Component
         $this->cantidad = 1;
     }
 
-    // public function updateVenta()
-    // {
-    //     // Calcular el monto total de los métodos de pago ingresados
-    //     $montoTotalMetodosPago = array_sum(array_column($this->metodosPago, 'monto'));
-
-    //     // Validar que la suma de los métodos de pago coincida con el monto total de la venta
-    //     if ($montoTotalMetodosPago != $this->montoTotal) {
-    //         $this->dispatch('showToast', [
-    //             'type' => 'error',
-    //             'message' => 'El monto de los métodos de pago no coincide con el total de la venta. Ajuste los montos antes de continuar.'
-    //         ]);
-    //         return; // Detener si la validación falla
-    //     }
-
-    //     // Iniciar la transacción de actualización solo si la validación pasa
-    //     DB::transaction(function () {
-    //         $venta = Venta::find($this->ventaId);
-
-    //         if (!$venta) {
-    //             $this->dispatch('showToast', [['type' => 'error', 'message' => 'Venta no encontrada.']]);
-    //             return;
-    //         }
-
-    //         // Actualiza la información de la venta
-    //         $venta->descripcion = $this->descripcion;
-    //         $venta->venta_mayorista = $this->venta_mayorista;
-    //         $venta->monto_total = $this->montoTotal;
-    //         $venta->save();
-
-    //         // Inicializa el monto total de la venta basado en los productos
-    //         $nuevoMontoTotal = 0;
-
-    //         // Actualiza los productos en la venta y ajusta inventario
-    //         foreach ($this->productos as $producto) {
-    //             $detVenta = DetVenta::where('venta_id', $this->ventaId)
-    //                 ->where('producto_id', $producto['producto_id'])
-    //                 ->first();
-
-    //             if ($detVenta) {
-    //                 $cantidadAnterior = $detVenta->cant;
-    //                 $nuevaCantidad = $producto['cantidad'];
-
-    //                 // Ajusta el inventario si hay cambios en la cantidad
-    //                 if ($cantidadAnterior !== $nuevaCantidad) {
-    //                     $diferencia = abs($nuevaCantidad - $cantidadAnterior);
-    //                     $detCompra = DetCompra::find($detVenta->det_compra_id);
-
-    //                     if ($detCompra) {
-    //                         if ($nuevaCantidad > $cantidadAnterior) {
-    //                             // Restar del inventario si se incrementa la cantidad en la venta
-    //                             $detCompra->stock -= $diferencia;
-    //                         } else {
-    //                             // Devolver al inventario si se disminuye la cantidad en la venta
-    //                             $detCompra->stock += $diferencia;
-    //                         }
-    //                         $detCompra->save();
-    //                     }
-    //                 }
-
-    //                 // Actualiza los detalles de la venta
-    //                 $detVenta->cant = $nuevaCantidad;
-    //                 $detVenta->precio_venta = $producto['precio'];
-    //                 $detVenta->save();
-    //             } else {
-    //                 // Crear un nuevo detalle de venta si no existe
-    //                 DetVenta::create([
-    //                     'venta_id' => $this->ventaId,
-    //                     'producto_id' => $producto['producto_id'],
-    //                     'cant' => $producto['cantidad'],
-    //                     'precio_venta' => $producto['precio'],
-    //                 ]);
-    //             }
-
-    //             // Acumula el monto total basado en los productos
-    //             $nuevoMontoTotal += $producto['precio'] * $producto['cantidad'];
-    //         }
-
-    //         // Elimina los productos que ya no están en la lista
-    //         $productosIds = collect($this->productos)->pluck('producto_id');
-    //         DetVenta::where('venta_id', $this->ventaId)->whereNotIn('producto_id', $productosIds)->delete();
-
-    //         // Actualiza los métodos de pago combinados
-    //         $venta->cuentas()->detach(); // Elimina las cuentas asociadas actuales
-
-    //         foreach ($this->metodosPago as $metodo) {
-    //             if (isset($metodo['cuenta_id'])) {
-    //                 $venta->cuentas()->attach($metodo['cuenta_id'], ['monto' => $metodo['monto']]);
-    //             }
-    //         }
-
-    //         // Ajustar los movimientos relacionados con la venta, como egresos, si existen
-    //         $movimiento = Movimiento::where('venta_id', $this->ventaId)->first();
-    //         if ($movimiento) {
-    //             $movimiento->monto = $nuevoMontoTotal;
-    //             $movimiento->save();
-    //         }
-
-    //         // Actualiza el monto total de la venta
-    //         $venta->monto_total = $nuevoMontoTotal;
-    //         $venta->save();
-
-    //         // Resetear productos y otros campos para una nueva edición
-    //         $this->productos = [];
-    //         $this->reset('producto_id', 'cantidad');
-    //         $this->getTabla();
-    //     });
-
-    //     $this->dispatch('closeModal');
-    // }
-
     public function editVenta($ventaId)
     {
         $venta = Venta::with('detVentas.producto', 'cuenta', 'cuentas', 'movimientos')->find($ventaId);
@@ -358,20 +290,38 @@ class Ventas extends Component
 
 
         // Agregar créditos como métodos de pago
+        // $creditos = Credito::where('venta_id', $ventaId)
+        //     ->join('users', 'users.id', '=', 'creditos.deudor_id')
+        //     ->select([
+        //         'creditos.id as credito_id',
+        //         'creditos.monto',
+        //         'creditos.deudor_id',
+        //         'users.name as deudor_nombre'
+        //     ])
+        //     ->get()
+        //     ->map(function ($credito) {
+        //         return [
+        //             'cuenta_id' => 0, // Crédito siempre tiene cuenta_id 0
+        //             'deudor_id' => $credito->deudor_id,
+        //             'deudor_nombre' => $credito->deudor_nombre,
+        //             'monto' => $credito->monto
+        //         ];
+        // });
         $creditos = Credito::where('venta_id', $ventaId)
-            ->join('users', 'users.id', '=', 'creditos.deudor_id')
+            ->join('clientes', 'clientes.id', '=', 'creditos.deudor_id')
             ->select([
                 'creditos.id as credito_id',
                 'creditos.monto',
                 'creditos.deudor_id',
-                'users.name as deudor_nombre'
+                'clientes.nombre as deudor_nombre'
             ])
             ->get()
             ->map(function ($credito) {
                 return [
-                    'cuenta_id' => 0, // Crédito siempre tiene cuenta_id 0
+                    'cuenta_id' => 0,
                     'deudor_id' => $credito->deudor_id,
                     'deudor_nombre' => $credito->deudor_nombre,
+                    'nombre' => 'Crédito - ' . $credito->deudor_nombre,
                     'monto' => $credito->monto
                 ];
             });

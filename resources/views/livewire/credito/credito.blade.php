@@ -42,8 +42,8 @@
                         <div class="col-md-3">
                             <x-select model="$wire.deudor_id_filter" id="deudor_id_filter" label="Filtrar por deudor">
                                 <option value="0">Todos...</option>
-                                @foreach ($usuarios as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                @foreach ($clientes as $c)
+                                    <option value="{{ $c->id }}">{{ $c->nombre }}</option>
                                 @endforeach
                             </x-select>
                         </div>
@@ -61,6 +61,85 @@
                         </div>
                     </div>
                     <div x-show="!loading">
+                        {{-- <div class="row px-2 pb-1">
+                            <div class="col-md-3">
+                                <div class="card border-danger shadow-sm mb-1">
+                                    <div class="card-body py-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-0 text-muted">Cartera pendiente</h6>
+                                                <h3 class="mb-0 font-weight-bold">
+                                                    $ {{ number_format($totalCarteraPendiente, 2, ',', '.') }}
+                                                </h3>
+                                            </div>
+                                            <div>
+                                                <i class="la la-money" style="font-size: 32px;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> --}}
+                        <div class="row px-2 pb-1">
+                            <div class="col-md-3">
+                                <div class="card border-danger shadow-sm mb-1">
+                                    <div class="card-body py-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-0 text-muted">Cartera pendiente</h6>
+                                                <h3 class="mb-0 font-weight-bold">
+                                                    $ {{ number_format($totalCarteraPendiente, 2, ',', '.') }}
+                                                </h3>
+                                            </div>
+                                            <div>
+                                                <i class="la la-money" style="font-size: 32px;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if ($deudor_id_filter && $deudor_id_filter !== '0')
+                                <div class="col-md-3">
+                                    <div class="card border-primary shadow-sm mb-1">
+                                        <div class="card-body py-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-0 text-muted">Debe {{ $nombreClienteFiltrado }}</h6>
+                                                    <h3 class="mb-0 font-weight-bold">
+                                                        $ {{ number_format($totalClienteFiltrado, 2, ',', '.') }}
+                                                    </h3>
+                                                </div>
+                                                <div>
+                                                    <i class="la la-user" style="font-size: 32px;"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($responsable_id && $responsable_id !== '0')
+                                <div class="col-md-3">
+                                    <div class="card border-warning shadow-sm mb-1">
+                                        <div class="card-body py-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-0 text-muted">Responsable:
+                                                        {{ $nombreResponsableFiltrado }}</h6>
+                                                    <h3 class="mb-0 font-weight-bold">
+                                                        $ {{ number_format($totalResponsableFiltrado, 2, ',', '.') }}
+                                                    </h3>
+                                                </div>
+                                                <div>
+                                                    <i class="la la-id-badge" style="font-size: 32px;"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
                         <x-table id="table_credito" extra="d-none">
                             <tr>
                                 <th>Fecha</th>
@@ -147,9 +226,11 @@
 
                 async getCredito() {
                     this.loading = true;
+
+                    await @this.actualizarTarjetasFiltros();
                     this.credito = await @this.getCredito();
 
-                    __destroyTable('#table_credito')
+                    __destroyTable('#table_credito');
 
                     for (const credito of this.credito) {
                         await this.addcreditoTable(credito);
@@ -190,7 +271,7 @@
                             'public/', 'storage/') : null;
                     tr += `
                         <td>${ __formatDate(credito.fecha)  }</td>
-                        <td>${credito.deudor ? credito.deudor.name : 'Sin detalle'}</td>
+                        <td>${credito.deudor ? credito.deudor.nombre : 'Sin detalle'}</td>
                         <td>${__numberFormat( credito.monto )}</td>
                         <td>${tipocredito}</td>
                         <td>${credito.responsable ? credito.responsable.name : 'Sin detalle'}</td>
@@ -211,10 +292,10 @@
 
                                 ${
                                         adjuntoRuta ? `
-                                                                  <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
-                                                                   <i class="la la-paperclip"></i>
-                                                                  </a>
-                                                                  ` : ``
+                                                                                                  <a href="${new URL(adjuntoRuta, window.location.origin).href}" target="_blank"  class="btn  btn-sm " style="margin-top:-4px ">
+                                                                                                   <i class="la la-paperclip"></i>
+                                                                                                  </a>
+                                                                                                  ` : ``
                                     }
                             </div>
                         </td>`;
