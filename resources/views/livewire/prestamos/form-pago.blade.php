@@ -17,8 +17,27 @@
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Cédula</small>{{ ($mov_info['cedula'] ?? '') ?: '-' }}</div>
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Peso (gr)</small>{{ ($mov_info['peso'] ?? '') ?: '-' }}</div>
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Promedio ($/gr)</small>${{ number_format((float) ($mov_info['promedio'] ?? 0), 0) }}</div>
-            <div class="col-md-3 mb-1"><small class="text-muted d-block">Tasa mensual</small>{{ number_format((float) ($mov_info['tasa'] ?? 0) * 100, 2) }}%</div>
+            <div class="col-md-3 mb-1"><small class="text-muted d-block">Tasa total cliente</small>{{ number_format((float) ($mov_info['tasa'] ?? 0) * 100, 2) }}%</div>
+            <div class="col-md-3 mb-1">
+                <small class="text-muted d-block">Interés inversionista/mes</small>
+                ${{ number_format((float) ($mov_info['interes_inversionista_mensual'] ?? 0), 0) }}
+                <span class="text-muted">({{ number_format((float) ($mov_info['tasa_inversionista'] ?? 0) * 100, 2) }}%)</span>
+            </div>
+            <div class="col-md-3 mb-1">
+                <small class="text-muted d-block">Interés casa/mes</small>
+                ${{ number_format((float) ($mov_info['interes_casa_mensual'] ?? 0), 0) }}
+                <span class="text-muted">({{ number_format((float) ($mov_info['tasa_casa'] ?? 0) * 100, 2) }}%)</span>
+            </div>
             <div class="col-12 mb-1"><small class="text-muted d-block">Prenda</small>{{ ($mov_info['prenda'] ?? '') ?: '-' }}</div>
+            @if (!empty($mov_info['imagen_prenda']))
+                <div class="col-12 mb-1">
+                    <small class="text-muted d-block">Foto de la prenda</small>
+                    <a href="{{ asset('storage/prestamos/'.$mov_info['imagen_prenda']) }}" target="_blank">
+                        <img src="{{ asset('storage/prestamos/'.$mov_info['imagen_prenda']) }}" alt="Foto de la prenda"
+                            style="max-height:120px;border-radius:6px;">
+                    </a>
+                </div>
+            @endif
         @else
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Cartera</small>{{ ($mov_info['cartera'] ?? '') ?: '-' }}</div>
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Cédula</small>{{ ($mov_info['cedula'] ?? '') ?: '-' }}</div>
@@ -34,6 +53,28 @@
         @endif
         <div class="col-12"><hr></div>
     </div>
+
+    @if ($pago_resultado)
+        <div class="row">
+            <div class="col-12">
+                @if (($pago_resultado['tipo'] ?? 'pago') === 'cancelacion')
+                    <div class="alert alert-success mb-2">
+                        <b>Contrato cancelado.</b> Total recibido: ${{ number_format((float) ($pago_resultado['total_recibido'] ?? 0), 0) }}
+                        (interés: ${{ number_format((float) ($pago_resultado['monto_interes'] ?? 0), 0) }}
+                        + capital: ${{ number_format((float) ($pago_resultado['monto_capital'] ?? 0), 0) }})
+                    </div>
+                @else
+                    <div class="alert alert-success mb-2">
+                        <b>Pago registrado.</b> A interés: ${{ number_format((float) ($pago_resultado['monto_interes'] ?? 0), 0) }}
+                        · A capital: ${{ number_format((float) ($pago_resultado['monto_capital'] ?? 0), 0) }}
+                        · Meses cubiertos: {{ $pago_resultado['meses_cubiertos'] ?? 0 }}
+                        · Nuevo saldo capital: ${{ number_format((float) ($pago_resultado['saldo_capital'] ?? 0), 0) }}
+                        · Nueva fecha de corte: {{ \Illuminate\Support\Carbon::parse($pago_resultado['fecha_corte'])->format('d/m/Y') }}
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
 
     @if (in_array($mov_estado, ['activo', 'vencido']))
         <div class="row">
@@ -57,8 +98,15 @@
                 <button type="button" class="btn btn-outline-dark" x-on:click="cancelar('{{ $pago_prestamo_id }}')">
                     Cancelar contrato (pago total)</button>
                 @if ($mov_estado === 'vencido')
-                    <button type="button" class="btn btn-outline-danger"
-                        x-on:click="adjudicar('{{ $pago_prestamo_id }}')">Adjudicar prenda a la casa</button>
+                    @if ($mov_info['puede_adjudicar'] ?? false)
+                        <button type="button" class="btn btn-outline-danger"
+                            x-on:click="adjudicar('{{ $pago_prestamo_id }}')">Adjudicar prenda a la casa</button>
+                    @else
+                        <small class="text-muted align-self-center">
+                            En periodo de gracia hasta
+                            {{ !empty($mov_info['fecha_limite_adjudicacion']) ? \Illuminate\Support\Carbon::parse($mov_info['fecha_limite_adjudicacion'])->format('d/m/Y') : '-' }}
+                        </small>
+                    @endif
                 @endif
             </div>
         </div>

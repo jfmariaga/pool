@@ -155,7 +155,9 @@ class PrestamosExcelSeeder extends Seeder
             // que la columna MESES está atrasada: se sube al mínimo que lo mantiene vigente.
             $mesesPagados = $mesesXls;
             if ($estadoXls === 'ACTIVO') {
-                $transcurridos = Carbon::parse($inicio)->diffInMonths(Carbon::today());
+                // Carbon 3 devuelve diffInMonths() como float; truncar para no
+                // arrastrar fracciones de mes al interés ya pagado.
+                $transcurridos = (int) Carbon::parse($inicio)->diffInMonths(Carbon::today());
                 $mesesPagados = max($mesesXls, $transcurridos - $plazo + 1, 0);
             }
 

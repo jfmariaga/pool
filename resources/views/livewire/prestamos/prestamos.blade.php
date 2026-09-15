@@ -97,6 +97,37 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h5>Gramos por inversionista</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Inversionista</th>
+                                                <th class="text-right">Contratos</th>
+                                                <th class="text-right">Total gramos</th>
+                                                <th class="text-right">Promedio ($/gr)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="f in (dashRetro.gramos_por_inversionista || [])" :key="f.inversionista">
+                                                <tr>
+                                                    <td x-text="f.inversionista"></td>
+                                                    <td class="text-right" x-text="f.contratos"></td>
+                                                    <td class="text-right" x-text="__numberFormat(f.total_gramos)"></td>
+                                                    <td class="text-right" x-text="__numberFormat(f.promedio)"></td>
+                                                </tr>
+                                            </template>
+                                            <tr x-show="!(dashRetro.gramos_por_inversionista || []).length">
+                                                <td colspan="4" class="text-center text-muted">Sin contratos activos</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -279,6 +310,7 @@
                 inversionistas: [],
                 dashRetro: {},
                 dashPersonal: {},
+                pagoAccionRealizada: false,
 
                 init() {
                     this.cargar();
@@ -287,7 +319,12 @@
                     window.addEventListener('openPagoModal', () => $('#form_pago').modal('show'));
                     window.addEventListener('closePagoModal', () => {
                         $('#form_pago').modal('hide');
-                        this.cargar();
+                    });
+                    // El pago/cancelación/adjudicación ya no cierran el modal solos (se
+                    // muestra el cálculo primero); la tabla solo se refresca al cerrar
+                    // manualmente y solo si de verdad se registró algo (no al solo ver el detalle).
+                    $('#form_pago').on('hidden.bs.modal', () => {
+                        if (this.pagoAccionRealizada) this.cargar();
                     });
                     window.addEventListener('openInversionistaModal', () => $('#form_inversionista').modal('show'));
                     window.addEventListener('closeInversionistaModal', () => {
@@ -299,9 +336,34 @@
                         toastRight(t.type, t.message);
                     });
 
-                    ['inversionista_id', 'cartera', 'estado_form'].forEach((campo) => {
+                    ['cartera', 'estado_form'].forEach((campo) => {
                         const el = document.getElementById(campo);
                         if (el) $(el).on('change', () => @this.set(campo === 'estado_form' ? 'estado' : campo, el.value));
+                    });
+
+                    const invEl = document.getElementById('inversionista_id');
+                    if (invEl) $(invEl).on('change', () => {
+                        @this.set('inversionista_id', invEl.value);
+                        // Solo en préstamos nuevos: sugiere la tasa del inversionista según el
+                        // catálogo, pero queda editable (el interés de la casa sigue siendo explícito).
+                        if (!@this.prestamo_id && !@this.tasa_interes_inversionista) {
+                            const tasaCatalogo = invEl.selectedOptions[0]?.dataset.tasa;
+                            if (tasaCatalogo) @this.set('tasa_interes_inversionista', tasaCatalogo);
+                        }
+                    });
+
+                    // Los select2 de filtros están en wire:ignore: x-model no basta,
+                    // hay que empujar el valor a Livewire manualmente al cambiar.
+                    [
+                        ['p_estado_filter', 'estado_filter'],
+                        ['p_inv_filter', 'inversionista_filter'],
+                        ['p_cartera_filter', 'cartera_filter'],
+                    ].forEach(([id, prop]) => {
+                        const el = document.getElementById(id);
+                        if (el) $(el).on('change', () => {
+                            @this.set(prop, el.value);
+                            this.cargar();
+                        });
                     });
                 },
 
@@ -465,10 +527,14 @@
                     @this.set('num_contrato', p.num_contrato ?? null);
                     @this.set('peso', p.peso ?? null);
                     @this.set('descripcion_prenda', p.descripcion_prenda ?? null);
+                    @this.set('foto_prenda', p.imagen_prenda ? `{{ asset('storage/prestamos') }}/${p.imagen_prenda}` : null);
+                    @this.set('foto_prenda_change', false);
                     @this.set('fecha_inicio', p.fecha_inicio ? p.fecha_inicio.substring(0, 10) : new Date().toISOString()
                         .substring(0, 10));
                     @this.set('monto', p.monto ? __numberFormat(p.monto, true) : null);
                     @this.set('tasa_interes', p.tasa_interes ? (p.tasa_interes * 100) : null);
+                    @this.set('tasa_interes_inversionista', p.tasa_interes_inversionista ? (p.tasa_interes_inversionista * 100) : null);
+                    @this.set('tasa_interes_casa', p.tasa_interes_casa ? (p.tasa_interes_casa * 100) : null);
                     @this.set('observacion', p.observacion ?? null);
 
                     setTimeout(() => {
@@ -499,28 +565,47 @@
                             if (ok) {
                                 toastRight('success', 'Préstamo eliminado');
                                 this.cargar();
-                            } else {
-                                toastRight('error', 'No se puede eliminar: el préstamo tiene pagos registrados.');
                             }
+                            // El backend despacha 'showToast' con el motivo específico cuando no se puede eliminar.
                         });
                 },
 
                 /* ---------- pagos ---------- */
                 verPago(id) {
+                    this.pagoAccionRealizada = false;
                     @this.getPago(id);
                 },
                 registrarPago() {
+                    this.pagoAccionRealizada = true;
                     @this.call('registrarPago');
                 },
                 adjudicar(id) {
                     alertClickCallback('Adjudicar prenda',
                         'La prenda pasará a ser de la casa y el contrato se cerrará.', 'warning',
-                        'Confirmar', 'Cancelar', () => @this.adjudicarPrenda(id));
+                        'Confirmar', 'Cancelar', () => {
+                            this.pagoAccionRealizada = true;
+                            @this.adjudicarPrenda(id);
+                        });
                 },
                 cancelar(id) {
+                    const total = __numberFormat(@this.mov_info.total_adeudado || 0);
                     alertClickCallback('Cancelar contrato',
-                        'Se registrará el pago total (capital + interés causado).', 'warning',
-                        'Confirmar', 'Cancelar', () => @this.cancelarPrestamo(id));
+                        `Se registrará el pago total por $${total} (capital + interés causado) y el contrato quedará cerrado.`,
+                        'warning', 'Confirmar', 'Cancelar', () => {
+                            this.pagoAccionRealizada = true;
+                            @this.cancelarPrestamo(id);
+                        });
+                },
+
+                getImgPrenda() {
+                    const file = document.getElementById('img-prenda')['files'][0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        @this.foto_prenda = reader.result;
+                        @this.foto_prenda_change = true;
+                    };
+                    reader.readAsDataURL(file);
                 },
 
                 /* ---------- inversionistas ---------- */

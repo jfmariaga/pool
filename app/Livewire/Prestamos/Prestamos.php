@@ -10,12 +10,17 @@ use App\Traits\General;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Intervention\Image\ImageManagerStatic as Image;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Prestamos extends Component
 {
     use General;
 
+    #[Url]
     public $tab = 'dash_retro';
 
     public $inversionistas = [];
@@ -28,12 +33,15 @@ class Prestamos extends Component
     public $cliente_nombre, $cliente_cedula, $cliente_telefono;
     public $inversionista_id, $cartera, $num_contrato, $peso, $descripcion_prenda;
     public $fecha_inicio, $monto, $tasa_interes, $observacion;
+    public $tasa_interes_inversionista, $tasa_interes_casa;
+    public $foto_prenda, $foto_prenda_change = false;
 
     // ---- formulario pago ----
     public $pago_prestamo_id, $pago_monto, $pago_fecha, $pago_observacion;
     public $mov_saldo_capital, $mov_interes_causado, $mov_fecha_vencimiento, $mov_cliente, $mov_estado;
     public $mov_info = [];
     public $movimientos = [];
+    public $pago_resultado = null;
 
     // ---- formulario inversionista ----
     public $inv_id, $inv_nombre, $inv_tasa, $inv_telefono, $inv_activo = 1;
@@ -117,6 +125,7 @@ class Prestamos extends Component
         $capital = (float) $act->sum('saldo_capital');
         $interesMes = (float) $act->sum('interes_mensual');
         $interesInvMes = (float) $act->sum('interes_inversionista_mensual');
+        $interesCasaMes = (float) $act->sum('interes_casa_mensual');
 
         $movs = $retro->flatMap->movimientos;
         $recuperado = (float) $movs->whereIn('tipo', ['abono_capital', 'mixto', 'cancelacion'])->sum('monto_capital');
@@ -140,7 +149,7 @@ class Prestamos extends Component
             'capital' => round($capital, 2),
             'interes_mes' => round($interesMes, 2),
             'pago_inversionistas_mes' => round($interesInvMes, 2),
-            'ganancia_casa_mes' => round($interesMes - $interesInvMes, 2),
+            'ganancia_casa_mes' => round($interesCasaMes, 2),
             'interes_causado' => round((float) $act->sum('interes_causado'), 2),
             'recuperado_capital' => round($recuperado, 2),
             'interes_cobrado' => round($interesCobrado, 2),
@@ -151,7 +160,32 @@ class Prestamos extends Component
             'adjudicadas' => $retro->where('estado', 'adjudicado')->count(),
             'clientes' => $retro->pluck('cliente_id')->unique()->count(),
             'proximos_vencimientos' => $proximos,
+            'gramos_por_inversionista' => $this->resumenGramosInversionista(),
         ];
+    }
+
+    /**
+     * Total de gramos empeñados y precio promedio por gramo, agrupados por inversionista
+     * (solo retroventa activos). El promedio sigue la misma definición que el accessor
+     * `promedio` del modelo: monto / peso (no gramos por contrato).
+     */
+    private function resumenGramosInversionista()
+    {
+        $activos = Prestamo::with('inversionista')->modalidad('retroventa')->where('estado', 'activo')->get();
+
+        $filas = [];
+        foreach ($activos->groupBy('inversionista_id') as $invId => $grupo) {
+            $totalGramos = (float) $grupo->sum(fn ($p) => (float) $p->peso);
+            $totalMonto = (float) $grupo->sum(fn ($p) => (float) $p->monto);
+            $filas[] = [
+                'inversionista' => $grupo->first()->inversionista->nombre ?? 'Sin inversionista',
+                'contratos' => $grupo->count(),
+                'total_gramos' => round($totalGramos, 2),
+                'promedio' => $totalGramos > 0 ? round($totalMonto / $totalGramos, 2) : 0,
+            ];
+        }
+
+        return $filas;
     }
 
     /**
@@ -216,6 +250,14 @@ class Prestamos extends Component
         return $this->cartera === 'Laura' ? 0.03 : 0.05;
     }
 
+    /** Normaliza una tasa ingresada como porcentaje (7) o fracción (0.07) a fracción. */
+    private function normalizarTasa($valor): float
+    {
+        $tasa = (float) ($valor ?: 0);
+
+        return $tasa > 1 ? $tasa / 100 : $tasa;
+    }
+
     public function savePrestamo()
     {
         $modalidad = in_array($this->tab, ['retroventa', 'personal'], true) ? $this->tab : 'retroventa';
@@ -228,11 +270,15 @@ class Prestamos extends Component
         if ($modalidad === 'retroventa') {
             $reglas['inversionista_id'] = 'required|exists:prestamo_inversionistas,id';
             $reglas['cliente_cedula'] = 'required|string|max:30';
+            $reglas['tasa_interes_inversionista'] = 'required|numeric|min:0';
+            $reglas['tasa_interes_casa'] = 'required|numeric|min:0';
         } else {
             $reglas['cartera'] = 'required|string';
         }
         $this->validate($reglas, [
             'cliente_cedula.required' => 'La cédula del cliente es obligatoria.',
+            'tasa_interes_inversionista.required' => 'La tasa del inversionista es obligatoria.',
+            'tasa_interes_casa.required' => 'La tasa de la casa es obligatoria.',
         ]);
 
         $montoLimpio = (float) $this->__limpiarNumDecimales($this->monto);
@@ -241,12 +287,19 @@ class Prestamos extends Component
             return false;
         }
 
-        $tasa = $this->tasa_interes !== null && $this->tasa_interes !== ''
-            ? (float) $this->tasa_interes
-            : $this->tasaPorDefecto($modalidad);
-        // permitir ingresar la tasa como porcentaje (7) o como fracción (0.07)
-        if ($tasa > 1) {
-            $tasa = $tasa / 100;
+        // Retroventa: el interés del inversionista y de la casa son explícitos por
+        // préstamo; la tasa que paga el cliente es la suma de ambos (no se edita directo).
+        // Personal: sigue siendo una sola tasa editable.
+        if ($modalidad === 'retroventa') {
+            $tasaInversionista = $this->normalizarTasa($this->tasa_interes_inversionista);
+            $tasaCasa = $this->normalizarTasa($this->tasa_interes_casa);
+            $tasa = round($tasaInversionista + $tasaCasa, 4);
+        } else {
+            $tasaInversionista = null;
+            $tasaCasa = null;
+            $tasa = $this->tasa_interes !== null && $this->tasa_interes !== ''
+                ? $this->normalizarTasa($this->tasa_interes)
+                : $this->tasaPorDefecto($modalidad);
         }
 
         $cliente = PrestamoCliente::firstOrCreate(
@@ -256,6 +309,18 @@ class Prestamos extends Component
             ['nombre' => trim($this->cliente_nombre), 'telefono' => $this->cliente_telefono]
         );
 
+        $prestamoExistente = $this->prestamo_id ? Prestamo::find($this->prestamo_id) : null;
+
+        $imagenPrenda = $prestamoExistente->imagen_prenda ?? null;
+        if ($modalidad === 'retroventa' && $this->foto_prenda_change && $this->foto_prenda) {
+            $imagenPrenda = $this->processImagenPrenda($this->foto_prenda);
+            if ($prestamoExistente?->imagen_prenda) {
+                Storage::disk('public')->delete('prestamos/'.$prestamoExistente->imagen_prenda);
+            }
+        } elseif ($modalidad !== 'retroventa') {
+            $imagenPrenda = null;
+        }
+
         $base = [
             'cliente_id' => $cliente->id,
             'inversionista_id' => $modalidad === 'retroventa' ? $this->inversionista_id : null,
@@ -263,6 +328,7 @@ class Prestamos extends Component
             'num_contrato' => $this->num_contrato,
             'peso' => $this->peso ?: null,
             'descripcion_prenda' => $this->descripcion_prenda,
+            'imagen_prenda' => $imagenPrenda,
             'fecha_inicio' => $this->fecha_inicio,
             'observacion' => $this->observacion,
         ];
@@ -278,6 +344,8 @@ class Prestamos extends Component
                 $base['monto'] = $montoLimpio;
                 $base['saldo_capital'] = $montoLimpio;
                 $base['tasa_interes'] = $tasa;
+                $base['tasa_interes_inversionista'] = $tasaInversionista;
+                $base['tasa_interes_casa'] = $tasaCasa;
                 $base['fecha_corte'] = $this->fecha_inicio;
             }
             $prestamo->update($base);
@@ -298,6 +366,8 @@ class Prestamos extends Component
                 'monto' => $montoLimpio,
                 'saldo_capital' => $montoLimpio,
                 'tasa_interes' => $tasa,
+                'tasa_interes_inversionista' => $tasaInversionista,
+                'tasa_interes_casa' => $tasaCasa,
                 'plazo_meses' => 4,
                 'estado' => 'activo',
                 'usuario_id' => Auth::id(),
@@ -329,7 +399,19 @@ class Prestamos extends Component
             return false;
         }
 
+        if ($prestamo->estado === 'adjudicado') {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'No se puede eliminar: la prenda ya fue adjudicada a la casa.',
+            ]);
+            return false;
+        }
+
         if ($prestamo->movimientos->where('tipo', '!=', 'desembolso')->isNotEmpty()) {
+            $this->dispatch('showToast', [
+                'type' => 'error',
+                'message' => 'No se puede eliminar: el préstamo ya tiene abonos u otros movimientos registrados.',
+            ]);
             return false;
         }
 
@@ -339,12 +421,30 @@ class Prestamos extends Component
         return true;
     }
 
+    /** Decodifica una imagen base64 (data URL), la redimensiona y la guarda en storage/prestamos. */
+    private function processImagenPrenda(string $base64): string
+    {
+        $partes = explode(';base64,', $base64);
+        $tipo = explode('image/', $partes[0])[1] ?? 'jpg';
+        $binario = base64_decode($partes[1] ?? '');
+
+        $nombre = 'prenda-'.date('Ymdhis').Str::random(5).'.'.$tipo;
+
+        $img = Image::make($binario)->widen(700, function ($constraint) {
+            $constraint->upsize();
+        })->encode($tipo);
+        Storage::disk('public')->put('prestamos/'.$nombre, $img);
+
+        return $nombre;
+    }
+
     public function resetForm()
     {
         $this->reset([
             'prestamo_id', 'cliente_nombre', 'cliente_cedula', 'cliente_telefono',
             'inversionista_id', 'cartera', 'num_contrato', 'peso', 'descripcion_prenda',
-            'fecha_inicio', 'monto', 'tasa_interes', 'observacion',
+            'fecha_inicio', 'monto', 'tasa_interes', 'tasa_interes_inversionista', 'tasa_interes_casa',
+            'observacion', 'foto_prenda', 'foto_prenda_change',
         ]);
         $this->resetValidation();
     }
@@ -371,6 +471,7 @@ class Prestamos extends Component
         $this->mov_cliente = $prestamo->cliente->nombre ?? '';
         $this->mov_estado = $prestamo->estado_mostrar;
         $this->movimientos = $prestamo->movimientos()->get();
+        $this->pago_resultado = null;
 
         $this->mov_info = [
             'modalidad' => $prestamo->modalidad,
@@ -380,14 +481,21 @@ class Prestamos extends Component
             'num_contrato' => $prestamo->num_contrato ?? '',
             'peso' => $prestamo->peso,
             'prenda' => $prestamo->descripcion_prenda ?? '',
+            'imagen_prenda' => $prestamo->imagen_prenda ?? '',
             'promedio' => $prestamo->promedio,
             'tasa' => (float) $prestamo->tasa_interes,
+            'tasa_inversionista' => (float) ($prestamo->tasa_interes_inversionista ?? 0),
+            'tasa_casa' => (float) ($prestamo->tasa_interes_casa ?? 0),
+            'interes_inversionista_mensual' => $prestamo->interes_inversionista_mensual,
+            'interes_casa_mensual' => $prestamo->interes_casa_mensual,
             'monto' => (float) $prestamo->monto,
             'fecha_inicio' => optional($prestamo->fecha_inicio)->toDateString(),
             'meses_pagados' => $prestamo->meses_pagados,
             'meses_causados' => $prestamo->meses_causados,
             'total_adeudado' => $prestamo->total_adeudado,
             'observacion' => $prestamo->observacion ?? '',
+            'puede_adjudicar' => $prestamo->puede_adjudicar,
+            'fecha_limite_adjudicacion' => $prestamo->fecha_limite_adjudicacion,
         ];
 
         $this->dispatch('openPagoModal');
@@ -417,8 +525,9 @@ class Prestamos extends Component
 
         // El primer mes se causa desde la entrega del dinero (por eso el +1).
         // Si el corte está a futuro (interés prepagado) no hay meses causados.
+        // Carbon 3 devuelve diffInMonths() como float; truncar a meses completos.
         $mesesCausados = $fechaPago->greaterThanOrEqualTo($corte)
-            ? $corte->diffInMonths($fechaPago) + 1
+            ? (int) $corte->diffInMonths($fechaPago) + 1
             : 0;
         if ($prestamo->modalidad === 'retroventa' && $mesesCausados > 0) {
             $mesesCausados = min($mesesCausados, (int) ($prestamo->plazo_meses ?: 4));
@@ -496,7 +605,21 @@ class Prestamos extends Component
         });
 
         $this->dispatch('showToast', ['type' => 'success', 'message' => 'Pago registrado correctamente.']);
-        $this->dispatch('closePagoModal');
+
+        $resultado = [
+            'tipo' => 'pago',
+            'monto_interes' => $montoInteres,
+            'monto_capital' => $montoCapital,
+            'meses_cubiertos' => $mesesCubiertos,
+            'saldo_capital' => $capitalDespues,
+            'fecha_corte' => $fechaCorteDespues,
+            'saldo_interes_favor' => $nuevoFavor,
+        ];
+
+        // Se refresca el modal (saldo, movimientos, estado) en vez de cerrarlo,
+        // para que el usuario vea el desglose del pago antes de cerrar manualmente.
+        $this->getPago($prestamo->id);
+        $this->pago_resultado = $resultado;
     }
 
     public function adjudicarPrenda($id)
@@ -505,25 +628,27 @@ class Prestamos extends Component
         if (! $prestamo || $prestamo->modalidad !== 'retroventa' || $prestamo->estado !== 'activo') {
             return false;
         }
-        if (! $prestamo->esta_vencido) {
-            $this->dispatch('showToast', [
-                'type' => 'error',
-                'message' => 'El contrato aún no está vencido; no se puede adjudicar.',
-            ]);
+        if (! $prestamo->puede_adjudicar) {
+            $mensaje = $prestamo->esta_vencido
+                ? 'El contrato está en periodo de gracia (10 días) hasta '
+                    .Carbon::parse($prestamo->fecha_limite_adjudicacion)->format('d/m/Y').'.'
+                : 'El contrato aún no está vencido; no se puede adjudicar.';
+            $this->dispatch('showToast', ['type' => 'error', 'message' => $mensaje]);
             return false;
         }
 
         $interesCausado = $prestamo->interes_causado;
+        $capitalAntes = (float) $prestamo->saldo_capital;
 
-        DB::transaction(function () use ($prestamo, $interesCausado) {
+        DB::transaction(function () use ($prestamo, $interesCausado, $capitalAntes) {
             PrestamoMovimiento::create([
                 'prestamo_id' => $prestamo->id,
                 'fecha' => now()->toDateString(),
                 'tipo' => 'adjudicacion',
                 'monto_interes' => 0,
-                'monto_capital' => 0,
-                'capital_antes' => (float) $prestamo->saldo_capital,
-                'capital_despues' => (float) $prestamo->saldo_capital,
+                'monto_capital' => $capitalAntes,
+                'capital_antes' => $capitalAntes,
+                'capital_despues' => 0,
                 'fecha_corte_antes' => $prestamo->fecha_corte->toDateString(),
                 'fecha_corte_despues' => $prestamo->fecha_corte->toDateString(),
                 'meses_cubiertos' => 0,
@@ -533,6 +658,8 @@ class Prestamos extends Component
                 'created_at' => now(),
             ]);
 
+            $prestamo->saldo_capital = 0;
+            $prestamo->saldo_interes_favor = 0;
             $prestamo->estado = 'adjudicado';
             $prestamo->fecha_cierre = now()->toDateString();
             $prestamo->save();
@@ -580,7 +707,18 @@ class Prestamos extends Component
         });
 
         $this->dispatch('showToast', ['type' => 'success', 'message' => 'Contrato cancelado.']);
-        $this->dispatch('closePagoModal');
+
+        $resultado = [
+            'tipo' => 'cancelacion',
+            'monto_interes' => $interesCausado,
+            'monto_capital' => $capitalAntes,
+            'total_recibido' => round($interesCausado + $capitalAntes, 2),
+        ];
+
+        // Se refresca el modal en vez de cerrarlo, para que el usuario vea el total
+        // recibido (capital + interés causado) antes de cerrar manualmente.
+        $this->getPago($prestamo->id);
+        $this->pago_resultado = $resultado;
 
         return true;
     }

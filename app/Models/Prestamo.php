@@ -10,6 +10,9 @@ class Prestamo extends Model
     protected $table = 'prestamos';
     protected $guarded = [];
 
+    /** Días de gracia después del vencimiento del plazo antes de poder adjudicar la prenda. */
+    private const DIAS_GRACIA_ADJUDICACION = 10;
+
     protected $casts = [
         'fecha_inicio' => 'date',
         'fecha_corte' => 'date',
@@ -18,6 +21,8 @@ class Prestamo extends Model
         'saldo_capital' => 'decimal:2',
         'saldo_interes_favor' => 'decimal:2',
         'tasa_interes' => 'decimal:4',
+        'tasa_interes_inversionista' => 'decimal:4',
+        'tasa_interes_casa' => 'decimal:4',
     ];
 
     protected $appends = [
@@ -33,6 +38,9 @@ class Prestamo extends Model
         'total_abonado',
         'meses_pagados',
         'interes_inversionista_mensual',
+        'interes_casa_mensual',
+        'fecha_limite_adjudicacion',
+        'puede_adjudicar',
     ];
 
     /* ------------------------------------------------------------------ */
@@ -96,7 +104,9 @@ class Prestamo extends Model
             return 0;
         }
 
-        return $corte->diffInMonths($ref);
+        // Carbon 3 devuelve diffInMonths() como float (meses fraccionados);
+        // se trunca explícitamente para contar solo meses calendario completos.
+        return (int) $corte->diffInMonths($ref);
     }
 
     /**
@@ -119,7 +129,8 @@ class Prestamo extends Model
             return 0;
         }
 
-        $causados = $corte->diffInMonths($ref) + 1;
+        // Idem: truncar el float de Carbon 3 a meses completos antes de sumar el +1.
+        $causados = (int) $corte->diffInMonths($ref) + 1;
 
         if ($this->modalidad === 'retroventa') {
             $causados = min($causados, (int) ($this->plazo_meses ?: 4));
@@ -164,6 +175,28 @@ class Prestamo extends Model
         return Carbon::today()->greaterThan(Carbon::parse($this->fecha_vencimiento));
     }
 
+    /** Fecha límite del periodo de gracia; pasada esta fecha la prenda es adjudicable. */
+    public function getFechaLimiteAdjudicacionAttribute(): ?string
+    {
+        if ($this->modalidad !== 'retroventa' || ! $this->fecha_vencimiento) {
+            return null;
+        }
+
+        return Carbon::parse($this->fecha_vencimiento)
+            ->addDays(self::DIAS_GRACIA_ADJUDICACION)
+            ->toDateString();
+    }
+
+    /** Solo se puede adjudicar la prenda una vez vencido el plazo y pasados los días de gracia. */
+    public function getPuedeAdjudicarAttribute(): bool
+    {
+        if (! $this->esta_vencido || ! $this->fecha_limite_adjudicacion) {
+            return false;
+        }
+
+        return Carbon::today()->greaterThan(Carbon::parse($this->fecha_limite_adjudicacion));
+    }
+
     /** Etiqueta de estado para la tabla (deriva "vencido"). */
     public function getEstadoMostrarAttribute(): string
     {
@@ -198,10 +231,26 @@ class Prestamo extends Model
         return (int) $this->movimientos->sum('meses_cubiertos');
     }
 
-    /** Interés mensual que le corresponde al inversionista sobre el capital vigente. */
+    /**
+     * Interés mensual que le corresponde al inversionista sobre el capital vigente.
+     * Se calcula con la tasa propia del préstamo (`tasa_interes_inversionista`), no con
+     * la tasa del catálogo de inversionistas ni como residuo del interés del cliente.
+     */
     public function getInteresInversionistaMensualAttribute(): float
     {
-        $tasa = (float) ($this->inversionista?->tasa ?? 0);
+        $tasa = (float) ($this->tasa_interes_inversionista ?? 0);
+
+        return round(((float) $this->saldo_capital) * $tasa, 2);
+    }
+
+    /**
+     * Interés mensual que le queda a la casa sobre el capital vigente.
+     * Se calcula con la tasa propia del préstamo (`tasa_interes_casa`), explícita e
+     * independiente del interés del inversionista.
+     */
+    public function getInteresCasaMensualAttribute(): float
+    {
+        $tasa = (float) ($this->tasa_interes_casa ?? 0);
 
         return round(((float) $this->saldo_capital) * $tasa, 2);
     }

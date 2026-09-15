@@ -21,7 +21,7 @@
             <x-select model="$wire.inversionista_id" id="inversionista_id" label="Inversionista" required="true">
                 <option value="">----Seleccionar----</option>
                 @foreach ($inversionistas as $inv)
-                    <option value="{{ $inv->id }}">{{ $inv->nombre }} ({{ number_format($inv->tasa * 100, 2) }}%)</option>
+                    <option value="{{ $inv->id }}" data-tasa="{{ $inv->tasa * 100 }}">{{ $inv->nombre }} ({{ number_format($inv->tasa * 100, 2) }}%)</option>
                 @endforeach
             </x-select>
         </div>
@@ -31,8 +31,30 @@
         <div class="col-md-3 mt-1" x-show="tab === 'retroventa'">
             <x-input type="number" model="$wire.peso" label="Peso (gr)"></x-input>
         </div>
+        <div class="col-md-4 mt-1" x-show="tab === 'retroventa'">
+            <x-input type="number" model="$wire.tasa_interes_inversionista" label="Tasa inversionista %"
+                required="true"></x-input>
+        </div>
+        <div class="col-md-4 mt-1" x-show="tab === 'retroventa'">
+            <x-input type="number" model="$wire.tasa_interes_casa" label="Tasa casa %" required="true"></x-input>
+        </div>
+        <div class="col-md-4 mt-1 d-flex align-items-end" x-show="tab === 'retroventa'">
+            <div class="w-100">
+                <label class="d-block">Total cliente %</label>
+                <input type="text" class="form-control" disabled
+                    :value="((parseFloat($wire.tasa_interes_inversionista) || 0) + (parseFloat($wire.tasa_interes_casa) || 0)).toFixed(2) + ' %'">
+            </div>
+        </div>
         <div class="col-md-12 mt-1" x-show="tab === 'retroventa'">
             <x-textarea model="$wire.descripcion_prenda" label="Descripción de la prenda" rows="2"></x-textarea>
+        </div>
+        <div class="col-md-12 mt-2" x-show="tab === 'retroventa'">
+            <label>Foto de la prenda</label>
+            <div class="contenedor-img" onclick="$('#img-prenda').click()">
+                <span x-show="!$wire.foto_prenda" class="text-white">Cargar imagen</span>
+                <img :src="$wire.foto_prenda" x-show="$wire.foto_prenda">
+            </div>
+            <input type="file" x-on:change="getImgPrenda()" id="img-prenda" class="form-control d-none" accept="image/*">
         </div>
 
         <!-- Personal -->
@@ -51,17 +73,18 @@
         <div class="col-md-4 mt-1">
             <x-input model="$wire.monto" label="Monto (capital)" required="true" class="mask_decimales"></x-input>
         </div>
-        <div class="col-md-4 mt-1">
+        <div class="col-md-4 mt-1" x-show="tab === 'personal'">
             <x-input type="number" model="$wire.tasa_interes" label="Tasa mensual %"
-                placeholder="Retroventa 7% · Personal 5% (Laura 3%)"></x-input>
+                placeholder="Personal 5% (Laura 3%)"></x-input>
         </div>
         <div class="col-md-12 mt-1">
             <x-textarea model="$wire.observacion" label="Observación" rows="2"></x-textarea>
         </div>
         <div class="col-12 mt-1">
             <small class="text-muted">El interés corre sobre el saldo de capital. El plazo de retroventa es de 4 meses y
-                se reinicia cada vez que el cliente paga los intereses corridos. El monto y la tasa solo se pueden editar
-                mientras el préstamo no tenga pagos.</small>
+                se reinicia cada vez que el cliente paga los intereses corridos. En retroventa, la tasa que paga el
+                cliente es la suma de la tasa del inversionista y la tasa de la casa. El monto y las tasas solo se
+                pueden editar mientras el préstamo no tenga pagos.</small>
         </div>
     </div>
 
