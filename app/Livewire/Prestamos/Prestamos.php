@@ -3,6 +3,7 @@
 namespace App\Livewire\Prestamos;
 
 use App\Models\Prestamo;
+use App\Models\PrestamoCartera;
 use App\Models\PrestamoCliente;
 use App\Models\PrestamoInversionista;
 use App\Models\PrestamoMovimiento;
@@ -24,6 +25,7 @@ class Prestamos extends Component
     public $tab = 'dash_retro';
 
     public $inversionistas = [];
+    public $carteras = [];
 
     // ---- filtros ----
     public $desde, $hasta, $estado_filter, $inversionista_filter, $cartera_filter, $buscar;
@@ -31,9 +33,10 @@ class Prestamos extends Component
     // ---- formulario prestamo ----
     public $prestamo_id;
     public $cliente_nombre, $cliente_cedula, $cliente_telefono;
-    public $inversionista_id, $cartera, $num_contrato, $peso, $descripcion_prenda;
-    public $fecha_inicio, $monto, $tasa_interes, $observacion;
-    public $tasa_interes_inversionista, $tasa_interes_casa;
+    public $cliente_encontrado = false;
+    public $inversionista_id, $cartera_id, $num_contrato, $peso, $descripcion_prenda;
+    public $fecha_inicio, $monto, $observacion;
+    public $tasa_interes_inversionista, $tasa_interes_cartera, $tasa_interes_casa;
     public $foto_prenda, $foto_prenda_change = false;
 
     // ---- formulario pago ----
@@ -46,7 +49,8 @@ class Prestamos extends Component
     // ---- formulario inversionista ----
     public $inv_id, $inv_nombre, $inv_tasa, $inv_telefono, $inv_activo = 1;
 
-    public $carteras = ['General', 'Laura', 'Mamá'];
+    // ---- formulario cartera ----
+    public $cart_id, $cart_nombre, $cart_activo = 1;
 
     public function mount()
     {
@@ -55,11 +59,17 @@ class Prestamos extends Component
             $this->hasta = date('Y-m-d');
         }
         $this->cargarInversionistas();
+        $this->cargarCarteras();
     }
 
     public function cargarInversionistas()
     {
         $this->inversionistas = PrestamoInversionista::orderBy('nombre')->get();
+    }
+
+    public function cargarCarteras()
+    {
+        $this->carteras = PrestamoCartera::orderBy('nombre')->get();
     }
 
     /* ================================================================= */
@@ -71,7 +81,7 @@ class Prestamos extends Component
         $this->skipRender();
 
         $query = Prestamo::query()
-            ->with(['cliente', 'inversionista', 'movimientos'])
+            ->with(['cliente', 'inversionista', 'cartera', 'movimientos'])
             ->modalidad($this->tab);
 
         if ($this->desde && $this->hasta) {
@@ -83,7 +93,7 @@ class Prestamos extends Component
         }
 
         if ($this->tab === 'personal' && $this->cartera_filter && $this->cartera_filter !== '0') {
-            $query->where('cartera', $this->cartera_filter);
+            $query->where('cartera_id', $this->cartera_filter);
         }
 
         if ($this->buscar) {
@@ -221,12 +231,12 @@ class Prestamos extends Component
 
     private function resumenCarteras()
     {
-        $activos = Prestamo::modalidad('personal')->where('estado', 'activo')->get();
+        $activos = Prestamo::with('cartera')->modalidad('personal')->where('estado', 'activo')->get();
 
         $filas = [];
-        foreach ($activos->groupBy('cartera') as $cartera => $grupo) {
+        foreach ($activos->groupBy('cartera_id') as $grupo) {
             $filas[] = [
-                'nombre' => $cartera ?: 'Sin cartera',
+                'nombre' => $grupo->first()->cartera->nombre ?? 'Sin cartera',
                 'contratos' => $grupo->count(),
                 'capital' => round((float) $grupo->sum('saldo_capital'), 2),
                 'interes_mes' => round((float) $grupo->sum('interes_mensual'), 2),
@@ -241,15 +251,6 @@ class Prestamos extends Component
     /* Crear / editar préstamo                                           */
     /* ================================================================= */
 
-    private function tasaPorDefecto(string $modalidad): float
-    {
-        if ($modalidad === 'retroventa') {
-            return 0.07;
-        }
-
-        return $this->cartera === 'Laura' ? 0.03 : 0.05;
-    }
-
     /** Normaliza una tasa ingresada como porcentaje (7) o fracción (0.07) a fracción. */
     private function normalizarTasa($valor): float
     {
@@ -258,26 +259,55 @@ class Prestamos extends Component
         return $tasa > 1 ? $tasa / 100 : $tasa;
     }
 
+    /**
+     * Al escribir la cédula en un préstamo nuevo, autocompleta nombre y teléfono si ya
+     * existe un cliente con esa cédula, para no terminar con nombres distintos para la
+     * misma persona.
+     */
+    public function updatedClienteCedula($cedula): void
+    {
+        $this->cliente_encontrado = false;
+
+        if ($this->prestamo_id || ! $cedula) {
+            return;
+        }
+
+        $cliente = PrestamoCliente::where('cedula', trim($cedula))->first();
+        if ($cliente) {
+            $this->cliente_nombre = $cliente->nombre;
+            $this->cliente_telefono = $cliente->telefono;
+            $this->cliente_encontrado = true;
+        }
+    }
+
     public function savePrestamo()
     {
         $modalidad = in_array($this->tab, ['retroventa', 'personal'], true) ? $this->tab : 'retroventa';
 
         $reglas = [
             'cliente_nombre' => 'required|string|max:255',
+            'cliente_telefono' => 'nullable|regex:/^[0-9]+$/',
             'monto' => 'required',
             'fecha_inicio' => 'required|date',
         ];
         if ($modalidad === 'retroventa') {
             $reglas['inversionista_id'] = 'required|exists:prestamo_inversionistas,id';
-            $reglas['cliente_cedula'] = 'required|string|max:30';
+            $reglas['cliente_cedula'] = 'required|regex:/^[0-9]+$/';
             $reglas['tasa_interes_inversionista'] = 'required|numeric|min:0';
             $reglas['tasa_interes_casa'] = 'required|numeric|min:0';
         } else {
-            $reglas['cartera'] = 'required|string';
+            $reglas['cliente_cedula'] = 'nullable|regex:/^[0-9]+$/';
+            $reglas['cartera_id'] = 'required|exists:prestamo_carteras,id';
+            $reglas['tasa_interes_cartera'] = 'required|numeric|min:0';
+            $reglas['tasa_interes_casa'] = 'required|numeric|min:0';
         }
         $this->validate($reglas, [
             'cliente_cedula.required' => 'La cédula del cliente es obligatoria.',
+            'cliente_cedula.regex' => 'La cédula solo puede contener números.',
+            'cliente_telefono.regex' => 'El teléfono solo puede contener números.',
+            'cartera_id.required' => 'La cartera es obligatoria.',
             'tasa_interes_inversionista.required' => 'La tasa del inversionista es obligatoria.',
+            'tasa_interes_cartera.required' => 'La tasa de la cartera es obligatoria.',
             'tasa_interes_casa.required' => 'La tasa de la casa es obligatoria.',
         ]);
 
@@ -287,19 +317,18 @@ class Prestamos extends Component
             return false;
         }
 
-        // Retroventa: el interés del inversionista y de la casa son explícitos por
-        // préstamo; la tasa que paga el cliente es la suma de ambos (no se edita directo).
-        // Personal: sigue siendo una sola tasa editable.
+        // El interés del socio (inversionista en retroventa, cartera en personal) y el
+        // de la casa son explícitos por préstamo; la tasa que paga el cliente es la
+        // suma de ambos (no se edita directo).
+        $tasaCasa = $this->normalizarTasa($this->tasa_interes_casa);
         if ($modalidad === 'retroventa') {
             $tasaInversionista = $this->normalizarTasa($this->tasa_interes_inversionista);
-            $tasaCasa = $this->normalizarTasa($this->tasa_interes_casa);
+            $tasaCartera = null;
             $tasa = round($tasaInversionista + $tasaCasa, 4);
         } else {
             $tasaInversionista = null;
-            $tasaCasa = null;
-            $tasa = $this->tasa_interes !== null && $this->tasa_interes !== ''
-                ? $this->normalizarTasa($this->tasa_interes)
-                : $this->tasaPorDefecto($modalidad);
+            $tasaCartera = $this->normalizarTasa($this->tasa_interes_cartera);
+            $tasa = round($tasaCartera + $tasaCasa, 4);
         }
 
         $cliente = PrestamoCliente::firstOrCreate(
@@ -324,7 +353,7 @@ class Prestamos extends Component
         $base = [
             'cliente_id' => $cliente->id,
             'inversionista_id' => $modalidad === 'retroventa' ? $this->inversionista_id : null,
-            'cartera' => $modalidad === 'personal' ? $this->cartera : null,
+            'cartera_id' => $modalidad === 'personal' ? $this->cartera_id : null,
             'num_contrato' => $this->num_contrato,
             'peso' => $this->peso ?: null,
             'descripcion_prenda' => $this->descripcion_prenda,
@@ -345,6 +374,7 @@ class Prestamos extends Component
                 $base['saldo_capital'] = $montoLimpio;
                 $base['tasa_interes'] = $tasa;
                 $base['tasa_interes_inversionista'] = $tasaInversionista;
+                $base['tasa_interes_cartera'] = $tasaCartera;
                 $base['tasa_interes_casa'] = $tasaCasa;
                 $base['fecha_corte'] = $this->fecha_inicio;
             }
@@ -367,6 +397,7 @@ class Prestamos extends Component
                 'saldo_capital' => $montoLimpio,
                 'tasa_interes' => $tasa,
                 'tasa_interes_inversionista' => $tasaInversionista,
+                'tasa_interes_cartera' => $tasaCartera,
                 'tasa_interes_casa' => $tasaCasa,
                 'plazo_meses' => 4,
                 'estado' => 'activo',
@@ -386,7 +417,7 @@ class Prestamos extends Component
             ]);
         }
 
-        $prestamo->load(['cliente', 'inversionista', 'movimientos']);
+        $prestamo->load(['cliente', 'inversionista', 'cartera', 'movimientos']);
         $this->resetForm();
 
         return $prestamo->toArray();
@@ -441,9 +472,9 @@ class Prestamos extends Component
     public function resetForm()
     {
         $this->reset([
-            'prestamo_id', 'cliente_nombre', 'cliente_cedula', 'cliente_telefono',
-            'inversionista_id', 'cartera', 'num_contrato', 'peso', 'descripcion_prenda',
-            'fecha_inicio', 'monto', 'tasa_interes', 'tasa_interes_inversionista', 'tasa_interes_casa',
+            'prestamo_id', 'cliente_nombre', 'cliente_cedula', 'cliente_telefono', 'cliente_encontrado',
+            'inversionista_id', 'cartera_id', 'num_contrato', 'peso', 'descripcion_prenda',
+            'fecha_inicio', 'monto', 'tasa_interes_inversionista', 'tasa_interes_cartera', 'tasa_interes_casa',
             'observacion', 'foto_prenda', 'foto_prenda_change',
         ]);
         $this->resetValidation();
@@ -455,7 +486,7 @@ class Prestamos extends Component
 
     public function getPago($id)
     {
-        $prestamo = Prestamo::with(['cliente', 'inversionista', 'movimientos'])->find($id);
+        $prestamo = Prestamo::with(['cliente', 'inversionista', 'cartera', 'movimientos'])->find($id);
         if (! $prestamo) {
             $this->dispatch('showToast', ['type' => 'error', 'message' => 'Préstamo no encontrado.']);
             return;
@@ -477,7 +508,7 @@ class Prestamos extends Component
             'modalidad' => $prestamo->modalidad,
             'cedula' => $prestamo->cliente->cedula ?? '',
             'inversionista' => $prestamo->inversionista->nombre ?? '',
-            'cartera' => $prestamo->cartera ?? '',
+            'cartera' => $prestamo->cartera->nombre ?? '',
             'num_contrato' => $prestamo->num_contrato ?? '',
             'peso' => $prestamo->peso,
             'prenda' => $prestamo->descripcion_prenda ?? '',
@@ -485,8 +516,10 @@ class Prestamos extends Component
             'promedio' => $prestamo->promedio,
             'tasa' => (float) $prestamo->tasa_interes,
             'tasa_inversionista' => (float) ($prestamo->tasa_interes_inversionista ?? 0),
+            'tasa_cartera' => (float) ($prestamo->tasa_interes_cartera ?? 0),
             'tasa_casa' => (float) ($prestamo->tasa_interes_casa ?? 0),
             'interes_inversionista_mensual' => $prestamo->interes_inversionista_mensual,
+            'interes_cartera_mensual' => $prestamo->interes_cartera_mensual,
             'interes_casa_mensual' => $prestamo->interes_casa_mensual,
             'monto' => (float) $prestamo->monto,
             'fecha_inicio' => optional($prestamo->fecha_inicio)->toDateString(),
@@ -753,6 +786,9 @@ class Prestamos extends Component
         $this->validate([
             'inv_nombre' => 'required|string|max:255',
             'inv_tasa' => 'required|numeric|min:0',
+            'inv_telefono' => 'nullable|regex:/^[0-9]+$/',
+        ], [
+            'inv_telefono.regex' => 'El teléfono solo puede contener números.',
         ]);
 
         $tasa = (float) $this->inv_tasa;
@@ -787,6 +823,64 @@ class Prestamos extends Component
         }
         $inv->delete();
         $this->cargarInversionistas();
+
+        return true;
+    }
+
+    /* ================================================================= */
+    /* Carteras                                                          */
+    /* ================================================================= */
+
+    public function getCarteras()
+    {
+        $this->skipRender();
+
+        return PrestamoCartera::withCount('prestamos')->orderBy('nombre')->get();
+    }
+
+    public function getCartera($id)
+    {
+        $cart = PrestamoCartera::find($id);
+        if (! $cart) {
+            return;
+        }
+        $this->cart_id = $cart->id;
+        $this->cart_nombre = $cart->nombre;
+        $this->cart_activo = $cart->activo;
+        $this->dispatch('openCarteraModal');
+    }
+
+    public function saveCartera()
+    {
+        $this->validate([
+            'cart_nombre' => 'required|string|max:255',
+        ]);
+
+        PrestamoCartera::updateOrCreate(
+            ['id' => $this->cart_id],
+            [
+                'nombre' => trim($this->cart_nombre),
+                'activo' => $this->cart_activo ? 1 : 0,
+            ]
+        );
+
+        $this->reset(['cart_id', 'cart_nombre']);
+        $this->cart_activo = 1;
+        $this->resetValidation();
+        $this->cargarCarteras();
+
+        $this->dispatch('showToast', ['type' => 'success', 'message' => 'Cartera guardada.']);
+        $this->dispatch('closeCarteraModal');
+    }
+
+    public function deleteCartera($id)
+    {
+        $cart = PrestamoCartera::withCount('prestamos')->find($id);
+        if (! $cart || $cart->prestamos_count > 0) {
+            return false;
+        }
+        $cart->delete();
+        $this->cargarCarteras();
 
         return true;
     }

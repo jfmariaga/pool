@@ -15,6 +15,10 @@
                             <a href="javascript:" x-show="tab === 'inversionistas'" x-on:click="openInversionista()"
                                 class="btn btn-dark"><i class="la la-plus"></i> Nuevo inversionista</a>
                         @endcan
+                        @can('gestionar prestamo-carteras')
+                            <a href="javascript:" x-show="tab === 'carteras'" x-on:click="openCartera()"
+                                class="btn btn-dark"><i class="la la-plus"></i> Nueva cartera</a>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -42,6 +46,12 @@
                         <li class="nav-item">
                             <a class="nav-link" :class="{ 'active': tab === 'inversionistas' }" href="javascript:"
                                 x-on:click="setTab('inversionistas')">Inversionistas</a>
+                        </li>
+                    @endcan
+                    @can('ver prestamo-carteras')
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ 'active': tab === 'carteras' }" href="javascript:"
+                                x-on:click="setTab('carteras')">Carteras</a>
                         </li>
                     @endcan
                 </ul>
@@ -216,7 +226,7 @@
                                 <x-select model="$wire.cartera_filter" id="p_cartera_filter" label="Cartera">
                                     <option value="0">Todas...</option>
                                     @foreach ($carteras as $c)
-                                        <option value="{{ $c }}">{{ $c }}</option>
+                                        <option value="{{ $c->id }}">{{ $c->nombre }}</option>
                                     @endforeach
                                 </x-select>
                             </div>
@@ -293,6 +303,25 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ===================== CARTERAS ===================== -->
+                <div x-show="tab === 'carteras'">
+                    <div class="card">
+                        <div x-show="!loading">
+                            <x-table id="table_carteras" extra="d-none">
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Préstamos</th>
+                                    <th>Estado</th>
+                                    <th>Acc</th>
+                                </tr>
+                            </x-table>
+                        </div>
+                        <div x-show="loading">
+                            <x-spinner></x-spinner>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -300,6 +329,7 @@
     @include('livewire.prestamos.form-prestamo')
     @include('livewire.prestamos.form-pago')
     @include('livewire.prestamos.form-inversionista')
+    @include('livewire.prestamos.form-cartera')
 
     @script
         <script>
@@ -308,6 +338,7 @@
                 loading: true,
                 rows: [],
                 inversionistas: [],
+                carteras: [],
                 dashRetro: {},
                 dashPersonal: {},
                 pagoAccionRealizada: false,
@@ -331,12 +362,17 @@
                         $('#form_inversionista').modal('hide');
                         this.cargar();
                     });
+                    window.addEventListener('openCarteraModal', () => $('#form_cartera').modal('show'));
+                    window.addEventListener('closeCarteraModal', () => {
+                        $('#form_cartera').modal('hide');
+                        this.cargar();
+                    });
                     window.addEventListener('showToast', (data) => {
                         const t = data.detail[0] ?? data.detail;
                         toastRight(t.type, t.message);
                     });
 
-                    ['cartera', 'estado_form'].forEach((campo) => {
+                    ['cartera_id', 'estado_form'].forEach((campo) => {
                         const el = document.getElementById(campo);
                         if (el) $(el).on('change', () => @this.set(campo === 'estado_form' ? 'estado' : campo, el.value));
                     });
@@ -351,6 +387,12 @@
                             if (tasaCatalogo) @this.set('tasa_interes_inversionista', tasaCatalogo);
                         }
                     });
+
+                    // Al salir del campo Cédula, se consulta si ya existe un cliente con esa
+                    // cédula para autocompletar nombre/teléfono (evita registrar el mismo
+                    // cliente con nombres distintos).
+                    const cedulaEl = document.getElementById('cliente_cedula');
+                    if (cedulaEl) cedulaEl.addEventListener('blur', () => @this.set('cliente_cedula', cedulaEl.value));
 
                     // Los select2 de filtros están en wire:ignore: x-model no basta,
                     // hay que empujar el valor a Livewire manualmente al cambiar.
@@ -381,6 +423,8 @@
                         this.dashPersonal = await @this.metricasPersonal();
                     } else if (this.tab === 'inversionistas') {
                         await this.cargarInversionistas();
+                    } else if (this.tab === 'carteras') {
+                        await this.cargarCarteras();
                     } else {
                         await this.cargarPrestamos();
                     }
@@ -483,7 +527,7 @@
                     return `<tr>
                         <td>${this.fFecha(p.fecha_inicio)}</td>
                         <td>${p.cliente ? p.cliente.nombre : '-'}</td>
-                        <td>${p.cartera ?? '-'}</td>
+                        <td>${p.cartera ? p.cartera.nombre : '-'}</td>
                         <td>${__numberFormat(p.monto)}</td>
                         <td>${__numberFormat(p.saldo_capital)}</td>
                         <td>${__numberFormat(p.interes_causado)}</td>
@@ -515,6 +559,26 @@
                     setTimeout(() => __resetTable('#table_inversionistas'), 200);
                 },
 
+                async cargarCarteras() {
+                    this.carteras = await @this.getCarteras();
+                    __destroyTable('#table_carteras');
+                    let html = '';
+                    for (const c of this.carteras) {
+                        html += `<tr>
+                            <td>${c.nombre}</td>
+                            <td>${c.prestamos_count}</td>
+                            <td>${c.activo == 1 ? 'Activo' : 'Inactivo'}</td>
+                            <td>
+                                <div class="d-flex">
+                                    <x-buttonsm click="openCartera('${c.id}')"><i class="la la-edit"></i></x-buttonsm>
+                                </div>
+                            </td>
+                        </tr>`;
+                    }
+                    $('#table_carteras tbody').html(html);
+                    setTimeout(() => __resetTable('#table_carteras'), 200);
+                },
+
                 /* ---------- form préstamo ---------- */
                 openForm(id = null) {
                     const p = this.rows.find((r) => r.id == id) ?? {};
@@ -523,7 +587,7 @@
                     @this.set('cliente_cedula', p.cliente ? p.cliente.cedula : null);
                     @this.set('cliente_telefono', p.cliente ? p.cliente.telefono : null);
                     @this.set('inversionista_id', p.inversionista_id ?? null);
-                    @this.set('cartera', p.cartera ?? null);
+                    @this.set('cartera_id', p.cartera_id ?? null);
                     @this.set('num_contrato', p.num_contrato ?? null);
                     @this.set('peso', p.peso ?? null);
                     @this.set('descripcion_prenda', p.descripcion_prenda ?? null);
@@ -532,28 +596,43 @@
                     @this.set('fecha_inicio', p.fecha_inicio ? p.fecha_inicio.substring(0, 10) : new Date().toISOString()
                         .substring(0, 10));
                     @this.set('monto', p.monto ? __numberFormat(p.monto, true) : null);
-                    @this.set('tasa_interes', p.tasa_interes ? (p.tasa_interes * 100) : null);
                     @this.set('tasa_interes_inversionista', p.tasa_interes_inversionista ? (p.tasa_interes_inversionista * 100) : null);
+                    @this.set('tasa_interes_cartera', p.tasa_interes_cartera ? (p.tasa_interes_cartera * 100) : null);
                     @this.set('tasa_interes_casa', p.tasa_interes_casa ? (p.tasa_interes_casa * 100) : null);
                     @this.set('observacion', p.observacion ?? null);
 
                     setTimeout(() => {
                         const inv = document.getElementById('inversionista_id');
                         if (inv) $(inv).val(@this.inversionista_id).trigger('change');
-                        const car = document.getElementById('cartera');
-                        if (car) $(car).val(@this.cartera).trigger('change');
+                        const car = document.getElementById('cartera_id');
+                        if (car) $(car).val(@this.cartera_id).trigger('change');
                     }, 300);
 
                     $('#form_prestamo').modal('show');
                 },
 
                 async guardarPrestamo() {
-                    const p = await @this.savePrestamo();
-                    if (p) {
-                        $('#form_prestamo').modal('hide');
-                        toastRight('success', 'Préstamo guardado');
-                        this.cargar();
-                    } else {
+                    try {
+                        const p = await @this.savePrestamo();
+                        if (p) {
+                            $('#form_prestamo').modal('hide');
+                            toastRight('success', 'Préstamo guardado');
+
+                            // El filtro de fechas (Desde/Hasta) puede dejar el préstamo
+                            // recién guardado fuera de la tabla sin ningún aviso; se
+                            // ensancha el rango para que siempre quede visible.
+                            const fecha = (p.fecha_inicio || '').substring(0, 10);
+                            if (fecha) {
+                                if (!@this.desde || fecha < @this.desde) await @this.set('desde', fecha);
+                                if (!@this.hasta || fecha > @this.hasta) await @this.set('hasta', fecha);
+                            }
+
+                            this.cargar();
+                        } else {
+                            toastRight('error', 'No se pudo guardar. Revise los datos.');
+                        }
+                    } catch (e) {
+                        console.error('guardarPrestamo error', e);
                         toastRight('error', 'No se pudo guardar. Revise los datos.');
                     }
                 },
@@ -590,7 +669,7 @@
                 cancelar(id) {
                     const total = __numberFormat(@this.mov_info.total_adeudado || 0);
                     alertClickCallback('Cancelar contrato',
-                        `Se registrará el pago total por $${total} (capital + interés causado) y el contrato quedará cerrado.`,
+                        `Se registrará el pago total por ${total} (capital + interés causado) y el contrato quedará cerrado.`,
                         'warning', 'Confirmar', 'Cancelar', () => {
                             this.pagoAccionRealizada = true;
                             @this.cancelarPrestamo(id);
@@ -623,6 +702,21 @@
                 },
                 guardarInversionista() {
                     @this.call('saveInversionista');
+                },
+
+                /* ---------- carteras ---------- */
+                openCartera(id = null) {
+                    if (id) {
+                        @this.getCartera(id);
+                    } else {
+                        @this.set('cart_id', null);
+                        @this.set('cart_nombre', null);
+                        @this.set('cart_activo', 1);
+                        $('#form_cartera').modal('show');
+                    }
+                },
+                guardarCartera() {
+                    @this.call('saveCartera');
                 },
             }));
         </script>

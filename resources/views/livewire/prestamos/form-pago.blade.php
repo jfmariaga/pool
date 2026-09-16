@@ -41,8 +41,18 @@
         @else
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Cartera</small>{{ ($mov_info['cartera'] ?? '') ?: '-' }}</div>
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Cédula</small>{{ ($mov_info['cedula'] ?? '') ?: '-' }}</div>
-            <div class="col-md-3 mb-1"><small class="text-muted d-block">Tasa mensual</small>{{ number_format((float) ($mov_info['tasa'] ?? 0) * 100, 2) }}%</div>
+            <div class="col-md-3 mb-1"><small class="text-muted d-block">Tasa total cliente</small>{{ number_format((float) ($mov_info['tasa'] ?? 0) * 100, 2) }}%</div>
             <div class="col-md-3 mb-1"><small class="text-muted d-block">Meses pagados</small>{{ $mov_info['meses_pagados'] ?? 0 }}</div>
+            <div class="col-md-3 mb-1">
+                <small class="text-muted d-block">Interés cartera/mes</small>
+                ${{ number_format((float) ($mov_info['interes_cartera_mensual'] ?? 0), 0) }}
+                <span class="text-muted">({{ number_format((float) ($mov_info['tasa_cartera'] ?? 0) * 100, 2) }}%)</span>
+            </div>
+            <div class="col-md-3 mb-1">
+                <small class="text-muted d-block">Interés casa/mes</small>
+                ${{ number_format((float) ($mov_info['interes_casa_mensual'] ?? 0), 0) }}
+                <span class="text-muted">({{ number_format((float) ($mov_info['tasa_casa'] ?? 0) * 100, 2) }}%)</span>
+            </div>
         @endif
 
         <div class="col-md-3 mb-1"><small class="text-muted d-block">Monto original</small>${{ number_format((float) ($mov_info['monto'] ?? 0), 0) }}</div>

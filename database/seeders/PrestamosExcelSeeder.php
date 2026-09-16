@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Prestamo;
+use App\Models\PrestamoCartera;
 use App\Models\PrestamoCliente;
 use App\Models\PrestamoInversionista;
 use App\Models\PrestamoMovimiento;
@@ -252,7 +253,7 @@ class PrestamosExcelSeeder extends Seeder
             $prestamo = Prestamo::create([
                 'modalidad' => 'personal',
                 'cliente_id' => $cliente->id,
-                'cartera' => $cartera,
+                'cartera_id' => PrestamoCartera::firstOrCreate(['nombre' => $cartera])->id,
                 'fecha_inicio' => $fecha,
                 'fecha_corte' => $pagado ? $fecha : $hoy,
                 'fecha_cierre' => $pagado ? $hoy : null,

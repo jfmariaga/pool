@@ -1,4 +1,4 @@
-@props(['model', 'type', 'label', 'required', 'placeholder', 'dataMask', 'keyup', 'class'])
+@props(['model', 'type', 'label', 'required', 'placeholder', 'dataMask', 'keyup', 'class', 'id'])
 
 @if( isset( $label ) && $label )
     <label for="">{{ $label }}

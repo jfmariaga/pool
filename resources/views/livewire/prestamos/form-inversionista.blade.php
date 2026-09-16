@@ -13,7 +13,7 @@
                 placeholder="ej. 5"></x-input>
         </div>
         <div class="col-md-6 mt-1">
-            <x-input model="$wire.inv_telefono" label="Teléfono"></x-input>
+            <x-input type="number" model="$wire.inv_telefono" label="Teléfono"></x-input>
         </div>
         <div class="col-md-6 mt-1">
             <label>Activo</label>

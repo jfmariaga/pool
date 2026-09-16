@@ -22,6 +22,7 @@ class Prestamo extends Model
         'saldo_interes_favor' => 'decimal:2',
         'tasa_interes' => 'decimal:4',
         'tasa_interes_inversionista' => 'decimal:4',
+        'tasa_interes_cartera' => 'decimal:4',
         'tasa_interes_casa' => 'decimal:4',
     ];
 
@@ -38,6 +39,7 @@ class Prestamo extends Model
         'total_abonado',
         'meses_pagados',
         'interes_inversionista_mensual',
+        'interes_cartera_mensual',
         'interes_casa_mensual',
         'fecha_limite_adjudicacion',
         'puede_adjudicar',
@@ -55,6 +57,11 @@ class Prestamo extends Model
     public function inversionista()
     {
         return $this->belongsTo(PrestamoInversionista::class, 'inversionista_id');
+    }
+
+    public function cartera()
+    {
+        return $this->belongsTo(PrestamoCartera::class, 'cartera_id');
     }
 
     public function movimientos()
@@ -239,6 +246,18 @@ class Prestamo extends Model
     public function getInteresInversionistaMensualAttribute(): float
     {
         $tasa = (float) ($this->tasa_interes_inversionista ?? 0);
+
+        return round(((float) $this->saldo_capital) * $tasa, 2);
+    }
+
+    /**
+     * Interés mensual que le corresponde a la cartera (préstamos personales) sobre el
+     * capital vigente. Mismo cálculo que `interes_inversionista_mensual`, pero con la
+     * tasa propia del préstamo (`tasa_interes_cartera`).
+     */
+    public function getInteresCarteraMensualAttribute(): float
+    {
+        $tasa = (float) ($this->tasa_interes_cartera ?? 0);
 
         return round(((float) $this->saldo_capital) * $tasa, 2);
     }
