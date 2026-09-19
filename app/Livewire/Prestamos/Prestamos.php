@@ -191,6 +191,7 @@ class Prestamos extends Component
                 'inversionista' => $grupo->first()->inversionista->nombre ?? 'Sin inversionista',
                 'contratos' => $grupo->count(),
                 'total_gramos' => round($totalGramos, 2),
+                'total_capital' => round((float) $grupo->sum(fn ($p) => (float) $p->saldo_capital), 2),
                 'promedio' => $totalGramos > 0 ? round($totalMonto / $totalGramos, 2) : 0,
             ];
         }
@@ -556,15 +557,8 @@ class Prestamos extends Component
         $fechaPago = Carbon::parse($this->pago_fecha)->startOfDay();
         $corte = Carbon::parse($prestamo->fecha_corte)->startOfDay();
 
-        // El primer mes se causa desde la entrega del dinero (por eso el +1).
-        // Si el corte está a futuro (interés prepagado) no hay meses causados.
-        // Carbon 3 devuelve diffInMonths() como float; truncar a meses completos.
-        $mesesCausados = $fechaPago->greaterThanOrEqualTo($corte)
-            ? (int) $corte->diffInMonths($fechaPago) + 1
-            : 0;
-        if ($prestamo->modalidad === 'retroventa' && $mesesCausados > 0) {
-            $mesesCausados = min($mesesCausados, (int) ($prestamo->plazo_meses ?: 4));
-        }
+        // Misma regla que el accessor `meses_causados`, evaluada a la fecha del pago.
+        $mesesCausados = $prestamo->mesesCausadosA($fechaPago);
 
         $interesMensual = round((float) $prestamo->saldo_capital * (float) $prestamo->tasa_interes, 2);
         $interesBruto = $interesMensual * $mesesCausados;
@@ -662,8 +656,8 @@ class Prestamos extends Component
             return false;
         }
         if (! $prestamo->puede_adjudicar) {
-            $mensaje = $prestamo->esta_vencido
-                ? 'El contrato está en periodo de gracia (10 días) hasta '
+            $mensaje = $prestamo->esta_en_gracia
+                ? 'El contrato está en días de gracia (10 días) hasta '
                     .Carbon::parse($prestamo->fecha_limite_adjudicacion)->format('d/m/Y').'.'
                 : 'El contrato aún no está vencido; no se puede adjudicar.';
             $this->dispatch('showToast', ['type' => 'error', 'message' => $mensaje]);

@@ -118,6 +118,7 @@
                                                 <th>Inversionista</th>
                                                 <th class="text-right">Contratos</th>
                                                 <th class="text-right">Total gramos</th>
+                                                <th class="text-right">Total capital</th>
                                                 <th class="text-right">Promedio ($/gr)</th>
                                             </tr>
                                         </thead>
@@ -127,11 +128,12 @@
                                                     <td x-text="f.inversionista"></td>
                                                     <td class="text-right" x-text="f.contratos"></td>
                                                     <td class="text-right" x-text="__numberFormat(f.total_gramos)"></td>
+                                                    <td class="text-right" x-text="__numberFormat(f.total_capital)"></td>
                                                     <td class="text-right" x-text="__numberFormat(f.promedio)"></td>
                                                 </tr>
                                             </template>
                                             <tr x-show="!(dashRetro.gramos_por_inversionista || []).length">
-                                                <td colspan="4" class="text-center text-muted">Sin contratos activos</td>
+                                                <td colspan="5" class="text-center text-muted">Sin contratos activos</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -209,6 +211,7 @@
                                 <x-select model="$wire.estado_filter" id="p_estado_filter" label="Estado">
                                     <option value="0">Todos...</option>
                                     <option value="activo">Activo</option>
+                                    <option value="gracia">Días de gracia</option>
                                     <option value="vencido">Vencido</option>
                                     <option value="pagado">Pagado</option>
                                     <option value="adjudicado">Adjudicado</option>
@@ -500,6 +503,7 @@
                 badge(estado) {
                     const map = {
                         activo: 'badge-success',
+                        gracia: 'badge-info',
                         vencido: 'badge-warning',
                         pagado: 'badge-secondary',
                         adjudicado: 'badge-danger'

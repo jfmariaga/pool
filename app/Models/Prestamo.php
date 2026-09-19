@@ -32,6 +32,7 @@ class Prestamo extends Model
         'interes_mensual',
         'interes_causado',
         'fecha_vencimiento',
+        'esta_en_gracia',
         'esta_vencido',
         'estado_mostrar',
         'promedio',
@@ -121,16 +122,26 @@ class Prestamo extends Model
      * Al entregar el dinero, el primer mes se causa de inmediato (por eso el +1),
      * aunque el préstamo todavía no esté vencido.
      * Si el corte está a futuro (interés prepagado) devuelve 0.
-     * En retroventa se limita al plazo (a los N meses se deben N meses, no más).
+     * En retroventa se limita al plazo mientras no esté vencido el plazo; desde el día
+     * siguiente al vencimiento (primer día de gracia) se cobra completo el mes siguiente y
+     * el interés sigue causándose mes a mes hasta que la prenda se adjudique o se pague.
      */
     public function getMesesCausadosAttribute(): int
+    {
+        return $this->mesesCausadosA($this->fechaReferencia());
+    }
+
+    /**
+     * Meses de interés causados a una fecha dada (misma regla que `meses_causados`).
+     */
+    public function mesesCausadosA(Carbon $fecha): int
     {
         if (! $this->fecha_corte) {
             return 0;
         }
 
         $corte = Carbon::parse($this->fecha_corte)->startOfDay();
-        $ref = $this->fechaReferencia()->startOfDay();
+        $ref = $fecha->copy()->startOfDay();
 
         if ($ref->lessThan($corte)) {
             return 0;
@@ -140,7 +151,12 @@ class Prestamo extends Model
         $causados = (int) $corte->diffInMonths($ref) + 1;
 
         if ($this->modalidad === 'retroventa') {
-            $causados = min($causados, (int) ($this->plazo_meses ?: 4));
+            $plazo = (int) ($this->plazo_meses ?: 4);
+
+            // Hasta el día del vencimiento inclusive rige el tope del plazo.
+            if ($ref->lessThanOrEqualTo($corte->copy()->addMonths($plazo))) {
+                $causados = min($causados, $plazo);
+            }
         }
 
         return $causados;
@@ -173,13 +189,27 @@ class Prestamo extends Model
             ->toDateString();
     }
 
+    /** Plazo vencido pero dentro de los días de gracia (el interés ya corre por el mes siguiente). */
+    public function getEstaEnGraciaAttribute(): bool
+    {
+        if ($this->modalidad !== 'retroventa' || $this->estado !== 'activo' || ! $this->fecha_vencimiento) {
+            return false;
+        }
+
+        $hoy = Carbon::today();
+
+        return $hoy->greaterThan(Carbon::parse($this->fecha_vencimiento))
+            && $hoy->lessThanOrEqualTo(Carbon::parse($this->fecha_limite_adjudicacion));
+    }
+
+    /** Vencido: terminó la gracia; sigue causando interés hasta adjudicar o pagar. */
     public function getEstaVencidoAttribute(): bool
     {
         if ($this->modalidad !== 'retroventa' || $this->estado !== 'activo' || ! $this->fecha_vencimiento) {
             return false;
         }
 
-        return Carbon::today()->greaterThan(Carbon::parse($this->fecha_vencimiento));
+        return Carbon::today()->greaterThan(Carbon::parse($this->fecha_limite_adjudicacion));
     }
 
     /** Fecha límite del periodo de gracia; pasada esta fecha la prenda es adjudicable. */
@@ -197,21 +227,21 @@ class Prestamo extends Model
     /** Solo se puede adjudicar la prenda una vez vencido el plazo y pasados los días de gracia. */
     public function getPuedeAdjudicarAttribute(): bool
     {
-        if (! $this->esta_vencido || ! $this->fecha_limite_adjudicacion) {
-            return false;
-        }
-
-        return Carbon::today()->greaterThan(Carbon::parse($this->fecha_limite_adjudicacion));
+        return $this->esta_vencido;
     }
 
-    /** Etiqueta de estado para la tabla (deriva "vencido"). */
+    /** Etiqueta de estado para la tabla (deriva "gracia" y "vencido"). */
     public function getEstadoMostrarAttribute(): string
     {
         if (in_array($this->estado, ['pagado', 'adjudicado'], true)) {
             return $this->estado;
         }
 
-        return $this->esta_vencido ? 'vencido' : 'activo';
+        if ($this->esta_vencido) {
+            return 'vencido';
+        }
+
+        return $this->esta_en_gracia ? 'gracia' : 'activo';
     }
 
     /** Precio por gramo (retroventa). */

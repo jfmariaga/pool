@@ -86,7 +86,7 @@
         </div>
     @endif
 
-    @if (in_array($mov_estado, ['activo', 'vencido']))
+    @if (in_array($mov_estado, ['activo', 'gracia', 'vencido']))
         <div class="row">
             <div class="col-md-12"><h5>Registrar pago</h5></div>
             <div class="col-md-4 mt-1">
@@ -107,16 +107,14 @@
                 <button type="button" class="btn btn-outline-primary" x-on:click="registrarPago()">Registrar pago</button>
                 <button type="button" class="btn btn-outline-dark" x-on:click="cancelar('{{ $pago_prestamo_id }}')">
                     Cancelar contrato (pago total)</button>
-                @if ($mov_estado === 'vencido')
-                    @if ($mov_info['puede_adjudicar'] ?? false)
-                        <button type="button" class="btn btn-outline-danger"
-                            x-on:click="adjudicar('{{ $pago_prestamo_id }}')">Adjudicar prenda a la casa</button>
-                    @else
-                        <small class="text-muted align-self-center">
-                            En periodo de gracia hasta
-                            {{ !empty($mov_info['fecha_limite_adjudicacion']) ? \Illuminate\Support\Carbon::parse($mov_info['fecha_limite_adjudicacion'])->format('d/m/Y') : '-' }}
-                        </small>
-                    @endif
+                @if ($mov_estado === 'vencido' && ($mov_info['puede_adjudicar'] ?? false))
+                    <button type="button" class="btn btn-outline-danger"
+                        x-on:click="adjudicar('{{ $pago_prestamo_id }}')">Adjudicar prenda a la casa</button>
+                @elseif ($mov_estado === 'gracia')
+                    <small class="text-muted align-self-center">
+                        En días de gracia hasta
+                        {{ !empty($mov_info['fecha_limite_adjudicacion']) ? \Illuminate\Support\Carbon::parse($mov_info['fecha_limite_adjudicacion'])->format('d/m/Y') : '-' }}
+                    </small>
                 @endif
             </div>
         </div>
