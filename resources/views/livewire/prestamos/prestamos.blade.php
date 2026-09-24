@@ -118,7 +118,8 @@
                                                 <th>Inversionista</th>
                                                 <th class="text-right">Contratos</th>
                                                 <th class="text-right">Total gramos</th>
-                                                <th class="text-right">Total capital</th>
+                                                <th class="text-right">Capital desembolsado</th>
+                                                <th class="text-right">Total capital a hoy</th>
                                                 <th class="text-right">Promedio ($/gr)</th>
                                             </tr>
                                         </thead>
@@ -128,12 +129,13 @@
                                                     <td x-text="f.inversionista"></td>
                                                     <td class="text-right" x-text="f.contratos"></td>
                                                     <td class="text-right" x-text="__numberFormat(f.total_gramos)"></td>
+                                                    <td class="text-right" x-text="__numberFormat(f.total_desembolsado)"></td>
                                                     <td class="text-right" x-text="__numberFormat(f.total_capital)"></td>
                                                     <td class="text-right" x-text="__numberFormat(f.promedio)"></td>
                                                 </tr>
                                             </template>
                                             <tr x-show="!(dashRetro.gramos_por_inversionista || []).length">
-                                                <td colspan="5" class="text-center text-muted">Sin contratos activos</td>
+                                                <td colspan="6" class="text-center text-muted">Sin contratos activos</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -462,6 +464,7 @@
                     return [
                         { label: 'Capital colocado', value: n(m.capital), sub: `${m.activos ?? 0} préstamos activos` },
                         { label: 'Interés / mes', value: n(m.interes_mes), sub: 'Sobre capital vigente' },
+                        { label: 'Ganancia casa / mes', value: n(m.ganancia_casa_mes), sub: 'Según tasa de interés de la casa' },
                         { label: 'Interés causado (pendiente)', value: n(m.interes_causado), sub: 'Acumulado no pagado' },
                         { label: 'Capital recuperado', value: n(m.recuperado_capital), sub: `Interés cobrado ${n(m.interes_cobrado)}` },
                         { label: 'Préstamos', value: (m.prestamos ?? 0), sub: `${m.activos ?? 0} activos · ${m.pagados ?? 0} pagados` },

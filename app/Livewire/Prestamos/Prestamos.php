@@ -191,6 +191,7 @@ class Prestamos extends Component
                 'inversionista' => $grupo->first()->inversionista->nombre ?? 'Sin inversionista',
                 'contratos' => $grupo->count(),
                 'total_gramos' => round($totalGramos, 2),
+                'total_desembolsado' => round($totalMonto, 2),
                 'total_capital' => round((float) $grupo->sum(fn ($p) => (float) $p->saldo_capital), 2),
                 'promedio' => $totalGramos > 0 ? round($totalMonto / $totalGramos, 2) : 0,
             ];
@@ -211,6 +212,7 @@ class Prestamos extends Component
 
         $capital = (float) $act->sum('saldo_capital');
         $interesMes = (float) $act->sum('interes_mensual');
+        $interesCasaMes = (float) $act->sum('interes_casa_mensual');
 
         $movs = $pers->flatMap->movimientos;
         $recuperado = (float) $movs->whereIn('tipo', ['abono_capital', 'mixto', 'cancelacion'])->sum('monto_capital');
@@ -219,6 +221,7 @@ class Prestamos extends Component
         return [
             'capital' => round($capital, 2),
             'interes_mes' => round($interesMes, 2),
+            'ganancia_casa_mes' => round($interesCasaMes, 2),
             'interes_causado' => round((float) $act->sum('interes_causado'), 2),
             'recuperado_capital' => round($recuperado, 2),
             'interes_cobrado' => round($interesCobrado, 2),
