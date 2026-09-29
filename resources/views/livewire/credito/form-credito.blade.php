@@ -9,8 +9,8 @@
         <div class="col-md-6 mt-1">
             <x-select model="$wire.deudor_id" label="A nombre de:" required="true" id="deudor_id">
                 <option value="">----Seleccionar----</option>
-                @foreach ($usuarios as $usuario)
-                    <option value="{{ $usuario->id }}">{{ $usuario->name }} {{$usuario->last_name}}</option>
+                @foreach ($clientes as $cliente)
+                    <option value="{{ $cliente->id }}">{{ $cliente->nombre }}</option>
                 @endforeach
             </x-select>
         </div>

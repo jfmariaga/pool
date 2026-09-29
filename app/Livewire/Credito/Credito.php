@@ -224,7 +224,7 @@ class Credito extends Component
     public function saveCredito()
     {
         $this->validate([
-            'deudor_id' => 'required|exists:users,id',
+            'deudor_id' => 'required|exists:clientes,id',
             'monto' => 'required|min:1',
         ]);
 

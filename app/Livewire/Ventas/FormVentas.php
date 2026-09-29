@@ -581,7 +581,13 @@ class FormVentas extends Component
             DetVenta::insert($nuevosRegistrosDetVenta->toArray());
 
             // Registrar los movimientos de ingreso y transferir cuentas seleccionadas a la tabla definitiva
+            // (se excluye cuenta_id = 0, que es el marcador especial de crédito y no existe en `cuentas`;
+            // los créditos se transfieren aparte más abajo)
             foreach ($this->ventas[$index]['cuentasSeleccionadas'] as $cuenta) {
+                if ($cuenta['cuenta_id'] == 0) {
+                    continue;
+                }
+
                 Movimiento::create([
                     'venta_id' => $venta->id,
                     'cuenta_id' => $cuenta['cuenta_id'],
