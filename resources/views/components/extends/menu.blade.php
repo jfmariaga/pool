@@ -67,6 +67,14 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('ver socios')
+                            <li class="nav-item {{ Route::is('socios') ? 'active' : '' }}">
+                                <a href="{{ route('socios') }}" onclick="blockPage()"><i
+                                        class="fa-solid fa-user-group"></i>
+                                    <span class="menu-title" data-i18n="nav.support_documentation.main">Socios</span>
+                                </a>
+                            </li>
+                        @endcan
                         @can('ver ajuste-inventario')
                             <li class="nav-item {{ Route::is('ajuste-inventario') ? 'active' : '' }}">
                                 <a href="{{ route('ajuste-inventario') }}" onclick="blockPage()"><i

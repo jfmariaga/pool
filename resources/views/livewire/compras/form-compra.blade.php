@@ -106,11 +106,12 @@
                                 <table class="table table-striped w-100">
                                     <thead>
                                         <tr>
-                                            <th style="width:15%;">Img</th>
-                                            <th style="width:20%;">Producto</th>
-                                            <th style="width:20%;">Cantidad</th>
-                                            <th style="width:20%;">Precio de compra C/U</th>
-                                            <th style="width:20%;">SubTotal</th>
+                                            <th style="width:12%;">Img</th>
+                                            <th style="width:17%;">Producto</th>
+                                            <th style="width:15%;">Cantidad</th>
+                                            <th style="width:15%;">Precio de compra C/U</th>
+                                            <th style="width:15%;">SubTotal</th>
+                                            <th style="width:16%;">Socio</th>
                                             <th style="width:5%;"></th>
                                         </tr>
                                     </thead>
@@ -167,6 +168,19 @@
                                                     x-text="__numberFormat( __limpiarNumDecimales( item.precio_compra ) * item.cantidad )">
                                                 </td>
                                                 <td>
+                                                    <template x-if="aplicaSocios( item.categoria_id )">
+                                                        <select class="form-control" x-model="item.socio_id">
+                                                            <option value="">Sin socio</option>
+                                                            @foreach ($socios as $i)
+                                                                <option value="{{ $i->id }}">{{ $i->nombre }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </template>
+                                                    <template x-if="!aplicaSocios( item.categoria_id )">
+                                                        <span class="italic_sub">N/A</span>
+                                                    </template>
+                                                </td>
+                                                <td>
                                                     <template x-if="item.vendidos == 0">
                                                         <x-buttonsm click="removeProducto( key )" color="danger"><i
                                                                 class="la la-trash"></i> </x-buttonsm>
@@ -219,6 +233,11 @@
                 filter_productos: [], // cambia con los filtros
                 errors: [], // para validar el form dinámico
                 buscar: '',
+                categorias_socios: @js($categorias->where('aplica_socios', 1)->pluck('id')->values()),
+
+                aplicaSocios(categoria_id) {
+                    return this.categorias_socios.map(String).includes(String(categoria_id))
+                },
 
                 init() { // se ejecuta cuando ya la aplicación esta lista visualmente
 
@@ -256,6 +275,7 @@
                         producto.cantidad = 1
                         producto.precio_compra = 0
                         producto.vendidos = 0 // se usa luego en el editar
+                        producto.socio_id = ''
                         @this.detalles.push(producto)
                     }
                 },

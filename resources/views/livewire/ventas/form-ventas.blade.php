@@ -136,10 +136,21 @@
                                                         class="form-check-input"
                                                         id="venta_mayorista_{{ $index }}"
                                                         @if ($venta['venta_mayorista']) checked @endif
-                                                        @if (!empty($venta['cuentasSeleccionadas'])) disabled @endif>
+                                                        @if (!empty($venta['cuentasSeleccionadas']) || !empty($venta['bajo_negociacion'])) disabled @endif>
                                                     <label class="form-check-label"
                                                         for="venta_mayorista_{{ $index }}">Venta al por
                                                         mayor</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input type="checkbox"
+                                                        wire:change="toggleBajoNegociacion({{ $index }})"
+                                                        class="form-check-input"
+                                                        id="bajo_negociacion_{{ $index }}"
+                                                        @if (!empty($venta['bajo_negociacion'])) checked @endif
+                                                        @if (!empty($venta['cuentasSeleccionadas'])) disabled @endif>
+                                                    <label class="form-check-label"
+                                                        for="bajo_negociacion_{{ $index }}">Bajo
+                                                        negociación</label>
                                                 </div>
                                                 <hr>
                                             @endif
@@ -153,11 +164,19 @@
                                                     <div>{{ array_sum(array_column($venta['productos'], 'cantidad')) }}
                                                     </div>
                                                 </div>
-                                                <div class="d-flex">
+                                                <div class="d-flex align-items-center">
                                                     <div class="w_150px">
                                                         <b>Total venta:</b>
                                                     </div>
-                                                    <span>$ {{ number_format($venta['monto'], 2) }}</span>
+                                                    @if (!empty($venta['bajo_negociacion']))
+                                                        <input type="number" step="0.01"
+                                                            wire:model="ventas.{{ $index }}.monto"
+                                                            wire:change="actualizarMontoManual({{ $index }})"
+                                                            class="form-control form-control-sm w-auto"
+                                                            style="max-width:150px;">
+                                                    @else
+                                                        <span>$ {{ number_format($venta['monto'], 2) }}</span>
+                                                    @endif
                                                 </div>
                                                 <div class="d-flex">
                                                     <div class="w_150px">

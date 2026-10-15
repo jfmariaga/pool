@@ -20,4 +20,9 @@ class DetCompra extends Model
     {
         return $this->belongsTo(Producto::class, 'producto_id');
     }
+
+    public function socio()
+    {
+        return $this->belongsTo(Socio::class, 'socio_id');
+    }
 }

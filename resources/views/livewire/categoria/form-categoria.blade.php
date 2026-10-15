@@ -17,6 +17,9 @@
         <div class="col-md-12 mt-1">
             <x-textarea model="$wire.descripcion" label="Decripción"  placeholder="Decripción (Opcional)"></x-textarea>
         </div>
+        <div class="col-md-12 mt-1">
+            <x-checkbox model="$wire.aplica_socios" label="Inventario de esta categoría se segmenta por socio"></x-checkbox>
+        </div>
     </div>
 
     <x-slot name="footer">

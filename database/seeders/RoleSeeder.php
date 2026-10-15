@@ -55,6 +55,12 @@ class RoleSeeder extends Seeder
         Permission::create(['name' => 'editar proveedores'])->syncRoles([$roleSuperAdmin]);
         Permission::create(['name' => 'eliminar proveedores'])->syncRoles([$roleSuperAdmin]);
 
+        // Crear permisos para Socios (CRUD completo)
+        Permission::create(['name' => 'ver socios'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'crear socios'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'editar socios'])->syncRoles([$roleSuperAdmin]);
+        Permission::create(['name' => 'eliminar socios'])->syncRoles([$roleSuperAdmin]);
+
         // Crear permisos para Cuentas (CRUD completo)
         Permission::create(['name' => 'ver cuentas'])->syncRoles([$roleSuperAdmin]);
         Permission::create(['name' => 'crear cuentas'])->syncRoles([$roleSuperAdmin]);

@@ -1,9 +1,21 @@
 <x-modal id="form_pago" size="lg">
     <x-slot name="title">
-        <span>Detalle del préstamo — {{ $mov_cliente }}</span>
+        <span>
+            Detalle del préstamo — {{ $mov_cliente }}
+            @if (!empty($mov_info['telefono']))
+                <small class="text-muted">({{ $mov_info['telefono'] }})</small>
+            @endif
+        </span>
     </x-slot>
 
     <div class="row">
+        @if (($mov_info['modalidad'] ?? '') === 'retroventa')
+            <div class="col-12 mb-2 text-right">
+                <a href="{{ url('/prestamos/'.$pago_prestamo_id.'/ticket') }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="la la-file-pdf-o"></i> Ver/imprimir ticket
+                </a>
+            </div>
+        @endif
         <div class="col-md-3 mb-1"><small class="text-muted d-block">Préstamo</small>#{{ $pago_prestamo_id }}</div>
         <div class="col-md-3 mb-1"><small class="text-muted d-block">Estado</small><span class="text-uppercase">{{ $mov_estado }}</span></div>
         <div class="col-md-3 mb-1"><small class="text-muted d-block">Saldo capital</small>${{ number_format((float) $mov_saldo_capital, 0) }}</div>
@@ -75,7 +87,8 @@
                     </div>
                 @else
                     <div class="alert alert-success mb-2">
-                        <b>Pago registrado.</b> A interés: ${{ number_format((float) ($pago_resultado['monto_interes'] ?? 0), 0) }}
+                        <b>{{ ($pago_resultado['mov_tipo'] ?? '') === 'pago_interes' ? 'Prórroga registrada.' : 'Pago registrado.' }}</b>
+                        A interés: ${{ number_format((float) ($pago_resultado['monto_interes'] ?? 0), 0) }}
                         · A capital: ${{ number_format((float) ($pago_resultado['monto_capital'] ?? 0), 0) }}
                         · Meses cubiertos: {{ $pago_resultado['meses_cubiertos'] ?? 0 }}
                         · Nuevo saldo capital: ${{ number_format((float) ($pago_resultado['saldo_capital'] ?? 0), 0) }}
@@ -143,7 +156,7 @@
                         @forelse ($movimientos as $m)
                             <tr>
                                 <td>{{ \Illuminate\Support\Carbon::parse($m->fecha)->format('d/m/Y') }}</td>
-                                <td>{{ str_replace('_', ' ', $m->tipo) }}</td>
+                                <td>{{ $m->tipo === 'pago_interes' ? 'Prórroga' : str_replace('_', ' ', $m->tipo) }}</td>
                                 <td class="text-right">{{ number_format((float) $m->monto_interes) }}</td>
                                 <td class="text-right">{{ number_format((float) $m->monto_capital) }}</td>
                                 <td class="text-right">{{ number_format((float) $m->capital_antes) }}</td>

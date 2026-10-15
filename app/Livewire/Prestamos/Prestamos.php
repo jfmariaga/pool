@@ -335,7 +335,7 @@ class Prestamos extends Component
             $tasa = round($tasaCartera + $tasaCasa, 4);
         }
 
-        $cliente = PrestamoCliente::firstOrCreate(
+        $cliente = PrestamoCliente::updateOrCreate(
             $this->cliente_cedula
                 ? ['cedula' => trim($this->cliente_cedula)]
                 : ['nombre' => trim($this->cliente_nombre)],
@@ -511,6 +511,7 @@ class Prestamos extends Component
         $this->mov_info = [
             'modalidad' => $prestamo->modalidad,
             'cedula' => $prestamo->cliente->cedula ?? '',
+            'telefono' => $prestamo->cliente->telefono ?? '',
             'inversionista' => $prestamo->inversionista->nombre ?? '',
             'cartera' => $prestamo->cartera->nombre ?? '',
             'num_contrato' => $prestamo->num_contrato ?? '',
@@ -638,6 +639,7 @@ class Prestamos extends Component
 
         $resultado = [
             'tipo' => 'pago',
+            'mov_tipo' => $tipo,
             'monto_interes' => $montoInteres,
             'monto_capital' => $montoCapital,
             'meses_cubiertos' => $mesesCubiertos,

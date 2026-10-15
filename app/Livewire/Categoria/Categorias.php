@@ -9,6 +9,7 @@ class Categorias extends Component
 {
     public $categorias = [];
     public $nombre, $descripcion, $categoria_id, $status;
+    public $aplica_socios = false;
 
 
     public function render()
@@ -31,17 +32,19 @@ class Categorias extends Component
             $categoria = Categoria::find( $this->categoria_id );
             if( isset( $categoria->id ) ){
 
-                $categoria->nombre      = $this->nombre;
-                $categoria->descripcion = $this->descripcion;
-                $categoria->status      = $this->status;
+                $categoria->nombre         = $this->nombre;
+                $categoria->descripcion    = $this->descripcion;
+                $categoria->status         = $this->status;
+                $categoria->aplica_socios  = $this->aplica_socios ?? false;
                 $categoria->save();
 
             }
         }else{ // insert
             $categoria = Categoria::create([
-                'nombre'      => $this->nombre,
-                'descripcion' => $this->descripcion ?? '',
-                'status' => 1,
+                'nombre'         => $this->nombre,
+                'descripcion'    => $this->descripcion ?? '',
+                'status'         => 1,
+                'aplica_socios'  => $this->aplica_socios ?? false,
             ]);
         }
 

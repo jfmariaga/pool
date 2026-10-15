@@ -22,6 +22,7 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th>Descripción</th>
+                                <th>Segmenta por socio</th>
                                 <th>Esatdo</th>
                                 <th>Acc</th>
                             </tr>
@@ -81,6 +82,7 @@
 
                     tr += `<td>${categoria.nombre}</td>
                         <td>${ categoria.descripcion ? categoria.descripcion :''  }</td>
+                        <td>${ categoria.aplica_socios == 1 ?  '<span style="color: green;">✔</span>' : '<span style="color: red;">✘</span>' }</td>
                         <td>${ categoria.status == 1 ?  '<span style="color: green;">✔</span>' : '<span style="color: red;">✘</span>' }</td>
                         <td>
                             <div class="d-flex">
@@ -130,6 +132,7 @@
                     @this.categoria_id = categoria_edit ? categoria_edit.id : null
                     @this.nombre = categoria_edit ? categoria_edit.nombre : null
                     @this.descripcion = categoria_edit ? categoria_edit.descripcion : null
+                    @this.aplica_socios = categoria_edit ? !!categoria_edit.aplica_socios : false
                     @this.status = categoria_edit ? categoria_edit.status : null
                     $('#form_categorias').modal('show')
 

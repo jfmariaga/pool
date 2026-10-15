@@ -17,6 +17,7 @@ use App\Livewire\Compras\FormCompra;
 use App\Livewire\Dashboard\Dashboard;
 use App\Livewire\Productos\Productos;
 use App\Livewire\Proveedores\Proveedores;
+use App\Livewire\Socios\Socios;
 use App\Livewire\Usuarios\Usuarios;
 use App\Livewire\Cuentas\Cuentas;
 use App\Livewire\Movimientos\Movimientos;
@@ -29,6 +30,7 @@ use App\Livewire\Credito\Credito;
 use App\Livewire\Creditos;
 use App\Livewire\Prestamos\Prestamos;
 use App\Livewire\Roles\Roles;
+use App\Http\Controllers\PrestamoTicketController;
 
 // Route::get('/pruebas', PruebaVelocidad::class);
 
@@ -41,6 +43,7 @@ Route::middleware([AuthGuard::class])->group(function () {
     Route::get('/categorias', Categorias::class)->name('categorias')->middleware('permission:ver categorias');
     Route::get('/productos', Productos::class)->name('productos')->middleware('permission:ver productos');
     Route::get('/proveedores', Proveedores::class)->name('proveedores')->middleware('permission:ver proveedores');
+    Route::get('/socios', Socios::class)->name('socios')->middleware('permission:ver socios');
     Route::get('/cuentas', Cuentas::class)->name('cuentas')->middleware('permission:ver cuentas');
     Route::get('/cierre-caja', CierreCaja::class)->name('cierre-caja')->middleware('permission:ver cierre-caja');
     Route::get('/compras', Compras::class)->name('compras')->middleware('permission:ver compras');
@@ -52,6 +55,7 @@ Route::middleware([AuthGuard::class])->group(function () {
     Route::get('/movimientos', Movimientos::class)->name('movimientos')->middleware('permission:ver movimientos');
     Route::get('/creditos', Credito::class)->name('creditos')->middleware('permission:ver creditos');
     Route::get('/prestamos', Prestamos::class)->name('prestamos')->middleware('permission:ver prestamos');
+    Route::get('/prestamos/{id}/ticket', [PrestamoTicketController::class, 'show'])->name('prestamos.ticket')->middleware('permission:ver prestamos');
     Route::get('/roles', Roles::class)->name('roles')->middleware('permission:ver roles');
 });
 

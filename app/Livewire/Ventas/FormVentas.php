@@ -131,9 +131,11 @@ class FormVentas extends Component
                 ];
             })->toArray();
 
-            $totalVenta = collect($productos)->sum(function ($producto) {
-                return $producto['precio'] * $producto['cantidad'];
-            });
+            $totalVenta = $venta->bajo_negociacion
+                ? (float) $venta->monto_total
+                : collect($productos)->sum(function ($producto) {
+                    return $producto['precio'] * $producto['cantidad'];
+                });
 
             // Mapea las cuentas asignadas o crea un array vacío si no hay cuentas
             $cuentasAsignadas = DB::table('venta_cuenta_temporal')
@@ -170,6 +172,7 @@ class FormVentas extends Component
                 'cuenta_id' => $venta->cuenta_id,
                 'venta_temporal_id' => $venta->id,
                 'venta_mayorista' => $venta->venta_mayorista,
+                'bajo_negociacion' => (bool) $venta->bajo_negociacion,
                 'cuentasSeleccionadas' => $cuentasAsignadas,
                 'saldo_pendiente' => $totalVenta - array_sum(array_column($cuentasAsignadas, 'monto') ?? [0])
             ];
@@ -198,6 +201,7 @@ class FormVentas extends Component
                 'cuenta_id' => null,
                 'venta_temporal_id' => $ventaTemporal->id,
                 'venta_mayorista' => false,
+                'bajo_negociacion' => false,
                 'cuentasSeleccionadas' => []
             ];
 
@@ -335,6 +339,57 @@ class FormVentas extends Component
             VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])
                 ->update(['venta_mayorista' => $this->ventas[$index]['venta_mayorista'], 'monto_total' => $this->ventas[$index]['monto']]);
         }
+    }
+
+    public function toggleBajoNegociacion($index)
+    {
+        if (!isset($this->ventas[$index])) {
+            return;
+        }
+
+        if (!empty($this->ventas[$index]['cuentasSeleccionadas'])) {
+            $this->dispatch('showToast', ['type' => 'error', 'message' => 'No se puede habilitar la negociación cuando ya hay cuentas o abonos registrados en la venta.']);
+            return;
+        }
+
+        $this->ventas[$index]['bajo_negociacion'] = !$this->ventas[$index]['bajo_negociacion'];
+
+        VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])
+            ->update(['bajo_negociacion' => $this->ventas[$index]['bajo_negociacion']]);
+
+        // Al desactivar la negociación, el total vuelve a calcularse desde los productos.
+        if (!$this->ventas[$index]['bajo_negociacion']) {
+            $this->ventas[$index]['monto'] = array_sum(array_map(function ($producto) {
+                return $producto['precio'] * $producto['cantidad'];
+            }, $this->ventas[$index]['productos']));
+
+            VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])
+                ->update(['monto_total' => $this->ventas[$index]['monto']]);
+        }
+
+        $montoAsignado = array_sum(array_column($this->ventas[$index]['cuentasSeleccionadas'], 'monto'));
+        $this->ventas[$index]['saldo_pendiente'] = $this->ventas[$index]['monto'] - $montoAsignado;
+    }
+
+    public function actualizarMontoManual($index)
+    {
+        if (!isset($this->ventas[$index]) || empty($this->ventas[$index]['bajo_negociacion'])) {
+            return;
+        }
+
+        $monto = (float) $this->ventas[$index]['monto'];
+        if ($monto <= 0) {
+            $this->dispatch('showToast', ['type' => 'error', 'message' => 'El valor de la venta debe ser mayor a cero.']);
+            return;
+        }
+
+        $this->ventas[$index]['monto'] = $monto;
+
+        $montoAsignado = array_sum(array_column($this->ventas[$index]['cuentasSeleccionadas'], 'monto'));
+        $this->ventas[$index]['saldo_pendiente'] = $monto - $montoAsignado;
+
+        VentasTemporales::find($this->ventas[$index]['venta_temporal_id'])
+            ->update(['monto_total' => $monto]);
     }
 
     public function recalcularPreciosVenta($index)
@@ -564,7 +619,8 @@ class FormVentas extends Component
                 'estado' => 'cerrada',
                 'user_id' => Auth::id(),
                 'fecha' => now(),
-                'venta_mayorista' => $this->ventas[$index]['venta_mayorista']
+                'venta_mayorista' => $this->ventas[$index]['venta_mayorista'],
+                'bajo_negociacion' => $this->ventas[$index]['bajo_negociacion'] ?? false,
             ]);
 
             // Mover los productos de la tabla temporal a la definitiva

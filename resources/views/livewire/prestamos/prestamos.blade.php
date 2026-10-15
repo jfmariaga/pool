@@ -489,6 +489,10 @@
                     let btns = `<div class="d-flex">`;
                     btns +=
                         `<x-buttonsm click="verPago('${p.id}')"><i class="la la-eye"></i></x-buttonsm>`;
+                    if (p.modalidad === 'retroventa') {
+                        btns +=
+                            `<x-buttonsm click="verTicket('${p.id}')"><i class="la la-file-pdf-o"></i></x-buttonsm>`;
+                    }
                     @can('editar prestamos')
                         if (p.estado === 'activo') {
                             btns +=
@@ -618,12 +622,21 @@
                     $('#form_prestamo').modal('show');
                 },
 
+                verTicket(id) {
+                    window.open(`/prestamos/${id}/ticket`, '_blank');
+                },
+
                 async guardarPrestamo() {
                     try {
+                        const esNuevo = !@this.prestamo_id;
                         const p = await @this.savePrestamo();
                         if (p) {
                             $('#form_prestamo').modal('hide');
                             toastRight('success', 'Préstamo guardado');
+
+                            if (esNuevo && this.tab === 'retroventa') {
+                                this.verTicket(p.id);
+                            }
 
                             // El filtro de fechas (Desde/Hasta) puede dejar el préstamo
                             // recién guardado fuera de la tabla sin ningún aviso; se

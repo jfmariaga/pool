@@ -10,6 +10,7 @@ use App\Models\Proveedores as Proveedor;
 use App\Models\Cuenta;
 use App\Models\Producto;
 use App\Models\Categoria;
+use App\Models\Socio;
 
 use App\Models\Compra;
 use App\Models\DetCompra;
@@ -24,7 +25,7 @@ class FormCompra extends Component
     use General, WithFileUploads;
 
     public $compra_id;
-    public $proveedores = [], $cuentas = [], $categorias = [];
+    public $proveedores = [], $cuentas = [], $categorias = [], $socios = [];
     public $proveedor_id, $cuenta_id;
     public $adjunto, $url;
 
@@ -60,6 +61,8 @@ class FormCompra extends Component
                         'vendidos'          => $det['stock_compra'] - $det['stock'],
                         'precio_compra'     => '$ ' . number_format($det['precio_compra'], 2),
                         'subtotal'          => $det['stock_compra'] * $det['precio_compra'],
+                        'categoria_id'      => $det['producto']['categoria_id'],
+                        'socio_id'          => $det['socio_id'] ?? '',
                     ];
                 }
                 // dd( $this->detalles );
@@ -69,6 +72,7 @@ class FormCompra extends Component
         $this->proveedores = Proveedor::where('status', 1)->get();
         $this->cuentas     = Cuenta::where('status', 1)->get();
         $this->categorias  = Categoria::where('status', 1)->get();
+        $this->socios      = Socio::where('status', 1)->get();
     }
 
     public function render()
@@ -120,6 +124,8 @@ class FormCompra extends Component
 
                 $precio_compra = $this->__limpiarNumDecimales($det['precio_compra']);
                 $compra->total += $precio_compra * $det['cantidad'];
+                $socio_id = $det['socio_id'] ?? null;
+                $socio_id = $socio_id !== '' ? $socio_id : null;
 
                 if (isset($det['det_id']) && $det['det_id']) { // editar un detalle
 
@@ -130,6 +136,7 @@ class FormCompra extends Component
                         $detCompra->stock         = $det['cantidad'] - $det['vendidos'];
                         $detCompra->stock_compra  = $det['cantidad'];
                         $detCompra->precio_compra = $precio_compra;
+                        $detCompra->socio_id      = $socio_id;
                         $detCompra->save();
                     }
                 } else { // agregar un detalle
@@ -140,6 +147,7 @@ class FormCompra extends Component
                         'stock'             => $det['cantidad'],
                         'stock_compra'      => $det['cantidad'],
                         'precio_compra'     => $precio_compra,
+                        'socio_id'          => $socio_id,
                     ]);
                 }
 
