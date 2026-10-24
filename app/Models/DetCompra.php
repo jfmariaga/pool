@@ -25,4 +25,10 @@ class DetCompra extends Model
     {
         return $this->belongsTo(Socio::class, 'socio_id');
     }
+
+    // aportes de los socios cuando la prenda se compró en sociedad entre varios
+    public function socios()
+    {
+        return $this->hasMany(DetCompraSocio::class, 'det_compra_id');
+    }
 }

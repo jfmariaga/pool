@@ -81,6 +81,39 @@
                     <h4 x-text="__numberFormat(kpis.margen_ganancia ?? 0)"></h4>
                 </div>
             </div>
+            <div class="col-md-12 mt-2">
+                <hr>
+                <h5><b>Prendas compradas en sociedad con otros socios</b></h5>
+                <template x-if="prendas_sociedad.length == 0">
+                    <p class="italic_sub">Este socio no tiene prendas compradas en sociedad con otros socios.</p>
+                </template>
+                <template x-if="prendas_sociedad.length > 0">
+                    <table class="table table-striped w-100">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Total prenda</th>
+                                <th>Socios y aporte</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="(item, key) in prendas_sociedad" :key="key">
+                                <tr>
+                                    <td x-text="item.producto"></td>
+                                    <td x-text="__numberFormat(item.total)"></td>
+                                    <td>
+                                        <template x-for="(s, sk) in item.socios" :key="sk">
+                                            <div
+                                                x-text="s.nombre + ': ' + __numberFormat(s.monto) + ' (' + s.porcentaje + '%)'">
+                                            </div>
+                                        </template>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+            </div>
         </div>
         <x-slot name="footer">
             <span>
@@ -159,6 +192,7 @@
                 loading_kpis: false,
                 kpis: {},
                 kpi_socio_nombre: null,
+                prendas_sociedad: [],
                 loading_sin_socio: false,
                 det_sin_socio: [],
                 seleccionados_sin_socio: [],
@@ -228,10 +262,12 @@
                 async verInventario(socio_id, nombre) {
                     this.kpi_socio_nombre = nombre
                     this.kpis = {}
+                    this.prendas_sociedad = []
                     this.loading_kpis = true
                     $('#kpis_socio').modal('show')
 
                     this.kpis = await @this.getKpisSocio(socio_id)
+                    this.prendas_sociedad = await @this.getPrendasSociedad(socio_id)
                     this.loading_kpis = false
                 },
 

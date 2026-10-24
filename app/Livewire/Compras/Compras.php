@@ -35,9 +35,9 @@ class Compras extends Component
         $this->skipRender();
 
         if( $this->desde && $this->hasta ){
-            $compras = Compra::where('fecha' , '>=', $this->desde)->where('fecha', '<=', $this->hasta)->with('proveedor', 'usuario', 'cuenta', 'detalles.producto','adjuntos')->get();
+            $compras = Compra::where('fecha' , '>=', $this->desde)->where('fecha', '<=', $this->hasta)->with('proveedor', 'usuario', 'cuenta', 'detalles.producto', 'detalles.socios.socio', 'adjuntos')->get();
         }else{
-            $compras = Compra::with('proveedor', 'usuario', 'cuenta', 'detalles.producto','adjuntos')->get();
+            $compras = Compra::with('proveedor', 'usuario', 'cuenta', 'detalles.producto', 'detalles.socios.socio', 'adjuntos')->get();
         }
 
         if( $this->proveedor_id ){

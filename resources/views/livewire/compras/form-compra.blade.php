@@ -106,12 +106,12 @@
                                 <table class="table table-striped w-100">
                                     <thead>
                                         <tr>
-                                            <th style="width:12%;">Img</th>
-                                            <th style="width:17%;">Producto</th>
-                                            <th style="width:15%;">Cantidad</th>
-                                            <th style="width:15%;">Precio de compra C/U</th>
-                                            <th style="width:15%;">SubTotal</th>
-                                            <th style="width:16%;">Socio</th>
+                                            <th style="width:10%;">Img</th>
+                                            <th style="width:14%;">Producto</th>
+                                            <th style="width:13%;">Cantidad</th>
+                                            <th style="width:13%;">Precio de compra C/U</th>
+                                            <th style="width:12%;">SubTotal</th>
+                                            <th style="width:33%;">Socio</th>
                                             <th style="width:5%;"></th>
                                         </tr>
                                     </thead>
@@ -169,12 +169,55 @@
                                                 </td>
                                                 <td>
                                                     <template x-if="aplicaSocios( item.categoria_id )">
-                                                        <select class="form-control" x-model="item.socio_id">
-                                                            <option value="">Sin socio</option>
-                                                            @foreach ($socios as $i)
-                                                                <option value="{{ $i->id }}">{{ $i->nombre }}</option>
-                                                            @endforeach
-                                                        </select>
+                                                        <div>
+                                                            <template x-for="(s, sidx) in item.socios" :key="sidx">
+                                                                <div class="mb-2 p-1"
+                                                                    style="border:1px solid #e0e0e0; border-radius:4px;">
+                                                                    <select class="form-control form-control-sm mb-1"
+                                                                        x-model="s.socio_id">
+                                                                        <option value="">Socio...</option>
+                                                                        @foreach ($socios as $i)
+                                                                            <option value="{{ $i->id }}">{{ $i->nombre }}</option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                    <div class="d-flex align-items-center"
+                                                                        style="gap:4px;">
+                                                                        <input type="text"
+                                                                            class="form-control form-control-sm mask_decimales"
+                                                                            style="flex:1;" x-model="s.monto">
+                                                                        <a href="javascript:"
+                                                                            x-on:click="item.socios.splice(sidx, 1)">
+                                                                            <i class="la la-trash c_red"></i>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                            <a href="javascript:" class="italic_sub"
+                                                                x-on:click="item.socios.push({ socio_id: '', monto: 0 })">
+                                                                <i class="la la-plus"></i> Agregar socio
+                                                            </a>
+                                                            <div class="italic_sub mt-1"
+                                                                x-show="item.socios.length > 0"
+                                                                :class="sumSocios(item) == (__limpiarNumDecimales(item.precio_compra) * item.cantidad) ? 'c_green' : 'c_red'">
+                                                                Aportado:
+                                                                <span x-text="__numberFormat(sumSocios(item))"></span>
+                                                                /
+                                                                <span
+                                                                    x-text="__numberFormat(__limpiarNumDecimales(item.precio_compra) * item.cantidad)"></span>
+                                                            </div>
+                                                            <template x-if="item.socios.length > 1">
+                                                                <span class="badge badge-info">En sociedad
+                                                                    (<span x-text="item.socios.length"></span>
+                                                                    socios)</span>
+                                                            </template>
+                                                            <template
+                                                                x-if="( typeof item.error_socios && item.error_socios )">
+                                                                <div class="italic_sub c_red">Verifica los
+                                                                    socios: deben tener socio seleccionado y la
+                                                                    suma de los montos debe ser igual al subtotal
+                                                                </div>
+                                                            </template>
+                                                        </div>
                                                     </template>
                                                     <template x-if="!aplicaSocios( item.categoria_id )">
                                                         <span class="italic_sub">N/A</span>
@@ -275,7 +318,7 @@
                         producto.cantidad = 1
                         producto.precio_compra = 0
                         producto.vendidos = 0 // se usa luego en el editar
-                        producto.socio_id = ''
+                        producto.socios = [] // socios que aportaron si la prenda se compra en sociedad
                         @this.detalles.push(producto)
                     }
                 },
@@ -308,6 +351,11 @@
                     @this.detalles = @this.detalles.filter((i, index) => index != key)
                 },
 
+                // suma de los montos aportados por los socios de un item
+                sumSocios(item) {
+                    return (item.socios || []).reduce((acc, s) => acc + __limpiarNumDecimales(s.monto), 0)
+                },
+
                 get totalCompra() {
                     let total = 0
                     @this.detalles.map((item) => {
@@ -326,6 +374,7 @@
                             item.error_cantidad = false
                             item.error_precio_compra = false
                             item.error_vendidos = false
+                            item.error_socios = false
 
                             if (item.cantidad <= 0) { // que la cantidad no sea menor a 0
                                 continuar = false
@@ -339,6 +388,20 @@
                             if (item.precio_compra <= 0) { // que lleve precio de compra
                                 continuar = false
                                 item.error_precio_compra = true
+                            }
+
+                            // si se asignaron socios, deben estar completos y sumar el subtotal de la línea
+                            if (item.socios && item.socios.length > 0) {
+                                const subtotal = __limpiarNumDecimales(item.precio_compra) * item.cantidad
+                                const incompleto = item.socios.some((s) => !s.socio_id || !s.monto)
+                                const noCuadra = Math.abs(this.sumSocios(item) - subtotal) > 1
+                                const socio_ids = item.socios.map((s) => s.socio_id)
+                                const duplicado = socio_ids.length !== new Set(socio_ids).size
+
+                                if (incompleto || noCuadra || duplicado) {
+                                    continuar = false
+                                    item.error_socios = true
+                                }
                             }
                         })
 

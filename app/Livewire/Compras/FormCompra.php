@@ -14,6 +14,7 @@ use App\Models\Socio;
 
 use App\Models\Compra;
 use App\Models\DetCompra;
+use App\Models\DetCompraSocio;
 use App\Models\Movimiento;
 use App\Traits\General;
 use Illuminate\Support\Facades\Storage;
@@ -38,7 +39,7 @@ class FormCompra extends Component
 
         // si viene es porque estamos editando
         if ($this->compra_id) {
-            $compra = Compra::where('id', $this->compra_id)->with(['detalles.producto', 'adjuntos'])->first()->toArray();
+            $compra = Compra::where('id', $this->compra_id)->with(['detalles.producto', 'detalles.socios', 'adjuntos'])->first()->toArray();
             // dd( $compra );
             if (isset($compra['id']) && $compra['id']) {
                 $this->proveedor_id = $compra['proveedor_id'];
@@ -62,7 +63,10 @@ class FormCompra extends Component
                         'precio_compra'     => '$ ' . number_format($det['precio_compra'], 2),
                         'subtotal'          => $det['stock_compra'] * $det['precio_compra'],
                         'categoria_id'      => $det['producto']['categoria_id'],
-                        'socio_id'          => $det['socio_id'] ?? '',
+                        'socios'            => array_map(fn($s) => [
+                            'socio_id' => $s['socio_id'],
+                            'monto'    => $s['monto_aportado'],
+                        ], $det['socios'] ?? []),
                     ];
                 }
                 // dd( $this->detalles );
@@ -123,9 +127,21 @@ class FormCompra extends Component
             foreach ($this->detalles as $det) {
 
                 $precio_compra = $this->__limpiarNumDecimales($det['precio_compra']);
-                $compra->total += $precio_compra * $det['cantidad'];
-                $socio_id = $det['socio_id'] ?? null;
-                $socio_id = $socio_id !== '' ? $socio_id : null;
+                $subtotal      = $precio_compra * $det['cantidad'];
+                $compra->total += $subtotal;
+
+                // socios que aportaron para la compra de esta línea (si es una prenda en sociedad)
+                $socios_det = [];
+                foreach ($det['socios'] ?? [] as $s) {
+                    if (!empty($s['socio_id'])) {
+                        $socios_det[] = [
+                            'socio_id' => $s['socio_id'],
+                            'monto'    => $this->__limpiarNumDecimales($s['monto']),
+                        ];
+                    }
+                }
+                // si es un único socio, se guarda también en det_compras.socio_id para mantener compatibilidad
+                $socio_id = count($socios_det) === 1 ? $socios_det[0]['socio_id'] : null;
 
                 if (isset($det['det_id']) && $det['det_id']) { // editar un detalle
 
@@ -148,6 +164,17 @@ class FormCompra extends Component
                         'stock_compra'      => $det['cantidad'],
                         'precio_compra'     => $precio_compra,
                         'socio_id'          => $socio_id,
+                    ]);
+                }
+
+                // sincronizamos los aportes de socios de la línea (reemplazamos los anteriores)
+                DetCompraSocio::where('det_compra_id', $detCompra->id)->delete();
+                foreach ($socios_det as $s) {
+                    DetCompraSocio::create([
+                        'det_compra_id'  => $detCompra->id,
+                        'socio_id'       => $s['socio_id'],
+                        'monto_aportado' => $s['monto'],
+                        'porcentaje'     => $subtotal > 0 ? round($s['monto'] / $subtotal * 100, 2) : 0,
                     ]);
                 }
 

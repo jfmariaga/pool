@@ -118,6 +118,7 @@
                                     <th>Cantidad</th>
                                     <th>Precio de compra</th>
                                     <th>SubTotal</th>
+                                    <th>Socios</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -137,6 +138,23 @@
                                         </td>
                                         <td
                                             x-text="__numberFormat( item.precio_compra  * item.stock_compra )">
+                                        </td>
+                                        <td>
+                                            <template x-if="!item.socios || item.socios.length == 0">
+                                                <span class="italic_sub">N/A</span>
+                                            </template>
+                                            <template x-if="item.socios && item.socios.length > 0">
+                                                <div>
+                                                    <template x-if="item.socios.length > 1">
+                                                        <span class="badge badge-info">En sociedad</span>
+                                                    </template>
+                                                    <template x-for="(s, sk) in item.socios" :key="sk">
+                                                        <div
+                                                            x-text="s.socio.nombre + ': ' + __numberFormat(s.monto_aportado) + ' (' + s.porcentaje + '%)'">
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
                                         </td>
                                     </tr>
                                 </template>
