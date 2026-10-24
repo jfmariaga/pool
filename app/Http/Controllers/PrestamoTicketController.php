@@ -18,7 +18,9 @@ class PrestamoTicketController extends Controller
             ? trim($responsable->name.' '.$responsable->last_name)
             : null;
 
-        $valorReembolso = (float) $prestamo->monto + ($prestamo->interes_mensual * (int) ($prestamo->plazo_meses ?: 4));
+        // saldo_capital + interés causado a hoy: se actualiza con cada abono, a diferencia
+        // de usar "monto" (el desembolso original, que nunca cambia).
+        $valorReembolso = (float) $prestamo->total_adeudado;
 
         // Si ya se pagó algún mes de interés, el corte se movió hacia adelante: el
         // ticket deja de ser el contrato inicial y pasa a ser una prórroga.
